@@ -48,6 +48,8 @@ cd ProblemX
 
 ## 使用方法
 
+你可以从[此处](QuickStart.md)快速上手ProblemX。
+
 ### 基本操作
 
 1. **启动程序**：运行 ProblemX 应用程序
