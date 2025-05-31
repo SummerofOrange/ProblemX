@@ -1,3 +1,9 @@
+# build
+build/
+
+# ProblemBank
+ProblemBank/
+
 # C++ objects and libs
 *.slo
 *.lo

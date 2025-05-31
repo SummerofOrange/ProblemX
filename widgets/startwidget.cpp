@@ -350,7 +350,7 @@ void StartWidget::onAboutClicked()
     
     QString aboutText = QString(
         "<h2>ProblemX 智能刷题系统</h2>"
-        "<p><b>版本:</b> Beta 0.1 </p>"
+        "<p><b>版本:</b> Beta 0.2 </p>"
         "<p><b>作者:</b> Orange</p>"
         "<p><b>描述:</b> 一个基于Qt框架开发的智能刷题练习系统，支持多科目题库管理、错题复习等功能。</p>"
         "<hr>"

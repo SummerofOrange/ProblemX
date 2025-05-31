@@ -879,6 +879,8 @@ void PracticeWidget::updateQuestionDisplay()
     
     // Update question text (support markdown-like formatting)
     QString questionText = currentQuestion.getQuestion();
+    // 先转义HTML特殊字符，防止代码中的<、>等符号被误解为HTML标签
+    questionText.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     // Simple markdown to HTML conversion
     questionText.replace("**", "<b>").replace("**", "</b>");
     questionText.replace("*", "<i>").replace("*", "</i>");

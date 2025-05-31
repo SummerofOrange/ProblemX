@@ -140,6 +140,13 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 - GitHub Issues: [https://github.com/SummerofOrange/ProblemX/issues](https://github.com/SummerofOrange/ProblemX/issues)
 - Email: orangesummer.ovo@qq.com
 
+## 更新日志
+
+### **2025/05/31(Beta 0.2 latest)**
+  - 修复了练习模块 (`practicewidget.cpp`) 和错题复习模块 (`reviewwidget.cpp`) 中，当题目文本（如代码片段）包含特殊HTML字符（例如 `<`, `>`）时，可能导致的题目显示不完整或渲染异常的问题。通过在 `updateQuestionDisplay` 和 `displayWrongAnswerDetails` 方法中对这些特殊字符进行转义，确保了题目内容的正确渲染。
+
+请参阅 [CHANGELOG](CHANGELOG.md) 文件以获取详细的更新日志。
+
 ## 致谢
 
 - [Qt Framework](https://www.qt.io/)

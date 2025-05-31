@@ -951,6 +951,11 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
     
     // Format question text
     QString questionText = item.questionText;
+    // Escape HTML special characters
+    questionText.replace("&", "&amp;");
+    questionText.replace("<", "&lt;");
+    questionText.replace(">", "&gt;");
+    // Replace newlines with <br> for HTML display
     questionText.replace("\n", "<br>");
     m_detailQuestionLabel->setText(QString("题目: %1").arg(questionText));
     
