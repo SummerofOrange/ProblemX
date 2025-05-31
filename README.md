@@ -48,8 +48,6 @@ cd ProblemX
 
 ## 使用方法
 
-你可以从[此处](QuickStart.md)快速上手ProblemX。
-
 ### 基本操作
 
 1. **启动程序**：运行 ProblemX 应用程序
@@ -140,7 +138,7 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 如有任何问题或建议，请通过以下方式联系我们：
 
 - GitHub Issues: [https://github.com/SummerofOrange/ProblemX/issues](https://github.com/SummerofOrange/ProblemX/issues)
-- Email: your.email@example.com
+- Email: orangesummer.ovo@qq.com
 
 ## 致谢
 
