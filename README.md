@@ -149,6 +149,8 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
   - **新增Markdown渲染支持**：集成Qt WebEngine模块，支持在题目中使用Markdown格式，包括粗体、斜体、代码块、列表等格式
   - **新增LaTeX数学公式支持**：集成KaTeX引擎，支持在题目中渲染LaTeX数学公式，提升数学类题目的显示效果
   - **优化题目显示**：通过`MarkdownRenderer`类提供更好的题目内容渲染体验
+  - **新增自动适配大小功能**：`MarkdownRenderer`组件现在支持根据内容长度自动调整高度，同时确保不超出主窗口范围
+  - **改进用户体验**：题面和选项渲染器能够智能适配内容大小，提供更好的视觉效果
   - **改进依赖管理**：添加Qt WebEngine模块依赖，确保Markdown和LaTeX功能正常运行
 
 请参阅 [CHANGELOG](CHANGELOG.md) 文件以获取详细的更新日志。

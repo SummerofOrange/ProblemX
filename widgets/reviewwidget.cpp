@@ -311,16 +311,20 @@ void ReviewWidget::setupUI()
     m_detailTypeLabel->setObjectName("detailType");
     m_detailQuestionRenderer = new MarkdownRenderer();
     m_detailQuestionRenderer->setObjectName("detailQuestion");
+    m_detailQuestionRenderer->setAutoResize(true, 400);  // 启用自动适配
     m_detailImageLabel = new QLabel();
     m_detailImageLabel->setAlignment(Qt::AlignCenter);
     m_detailImageLabel->setScaledContents(false);
     m_detailImageLabel->setVisible(false);
     m_detailChoicesRenderer = new MarkdownRenderer();
     m_detailChoicesRenderer->setObjectName("detailChoices");
+    m_detailChoicesRenderer->setAutoResize(true, 300);  // 启用自动适配
     m_detailCorrectAnswerRenderer = new MarkdownRenderer();
     m_detailCorrectAnswerRenderer->setObjectName("detailCorrectAnswer");
+    m_detailCorrectAnswerRenderer->setAutoResize(true, 200);  // 启用自动适配
     m_detailUserAnswerRenderer = new MarkdownRenderer();
     m_detailUserAnswerRenderer->setObjectName("detailUserAnswer");
+    m_detailUserAnswerRenderer->setAutoResize(true, 200);  // 启用自动适配
     m_detailTimestampLabel = new QLabel();
     m_detailTimestampLabel->setObjectName("detailTimestamp");
     m_detailReviewCountLabel = new QLabel();

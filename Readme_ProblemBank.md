@@ -191,6 +191,50 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
             "answer": [
                 "多态性"
             ]
+        },
+        {
+            "type": "FillBlank",
+            "question": "# 编程算法填空题\n\n## 快速排序算法\n\n```python\ndef quicksort(arr, low, high):\n    if low < high:\n        # 分区操作\n        pi = partition(arr, low, high)\n        \n        # 递归排序左右子数组\n        quicksort(arr, low, ________)  # 填空1\n        quicksort(________, pi + 1, high)  # 填空2\n\ndef partition(arr, low, high):\n    pivot = arr[high]  # 选择最后一个元素作为基准\n    i = low - 1\n    \n    for j in range(low, high):\n        if arr[j] <= pivot:\n            i += 1\n            arr[i], arr[j] = arr[j], arr[i]\n    \n    arr[i + 1], arr[high] = arr[high], arr[i + 1]\n    return ________  # 填空3\n```\n\n## 时间复杂度分析\n\n- **最好情况**：$O(n \\log n)$\n- **平均情况**：$O(n \\log n)$\n- **最坏情况**：$O(n^2)$\n\n### 空间复杂度\n\n递归调用栈的深度为 $O(\\log n)$（平均情况）到 $O(n)$（最坏情况）。\n\n**填空说明**：\n1. 填空1：递归排序左子数组的结束位置\n2. 填空2：递归排序右子数组时传入的数组参数\n3. 填空3：分区函数应该返回的值",
+            "BlankNum": 3,
+            "answer": [
+                "pi - 1",
+                "arr",
+                "i + 1"
+            ]
+        },
+        {
+            "type": "FillBlank",
+            "question": "# 线性代数矩阵运算\n\n## 矩阵乘法\n\n给定两个矩阵：\n\n$$A = \\begin{pmatrix}\n1 & 2 \\\\\n3 & 4\n\\end{pmatrix}, \\quad B = \\begin{pmatrix}\n5 & 6 \\\\\n7 & 8\n\\end{pmatrix}$$\n\n计算矩阵乘积 $AB$：\n\n$$AB = \\begin{pmatrix}\n1 \\cdot 5 + 2 \\cdot 7 & 1 \\cdot 6 + 2 \\cdot 8 \\\\\n3 \\cdot 5 + 4 \\cdot 7 & 3 \\cdot 6 + 4 \\cdot 8\n\\end{pmatrix} = \\begin{pmatrix}\n(1) & (2) \\\\\n(3) & (4)\n\\end{pmatrix}$$\n\n## 行列式计算\n\n对于 2×2 矩阵 $A$，其行列式为：\n\n$$\\det(A) = \\begin{vmatrix}\n1 & 2 \\\\\n3 & 4\n\\end{vmatrix} = 1 \\cdot 4 - 2 \\cdot 3 = (5)$$\n\n> **提示**：矩阵乘法的计算规则是行乘列",
+            "BlankNum": 5,
+            "answer": [
+                "19",
+                "22",
+                "43",
+                "50",
+                "-2"
+            ]
+        },
+        {
+            "type": "Choice",
+            "question": "# Markdown语法测试\n\n## 文本格式\n\n这是一个包含**粗体**、*斜体*、***粗斜体***和~~删除线~~的测试题目。\n\n### 列表测试\n\n无序列表：\n- 第一项\n- 第二项\n  - 嵌套项\n- 第三项\n\n有序列表：\n1. 第一步\n2. 第二步\n3. 第三步\n\n### 代码测试\n\n行内代码：`console.log('Hello World')`\n\n代码块：\n```javascript\nfunction fibonacci(n) {\n    if (n <= 1) return n;\n    return fibonacci(n-1) + fibonacci(n-2);\n}\n```\n\n### 引用和链接\n\n> 这是一个引用块\n> 可以包含多行内容\n\n链接测试：[GitHub](https://github.com)\n\n---\n\n下面是数学公式：$f(x) = x^2 + 2x + 1$",
+            "choices": [
+                "A. 这道题测试**粗体**格式",
+                "B. 这道题测试*斜体*格式",
+                "C. 这道题测试`代码`格式",
+                "D. 这道题测试所有格式"
+            ],
+            "answer": "D"
+        },
+        {
+            "type": "Choice",
+            "question": "# 表格和复杂数学公式测试\n\n## 数据结构比较\n\n| 数据结构 | 插入时间复杂度 | 查找时间复杂度 | 删除时间复杂度 |\n|---------|---------------|---------------|---------------|\n| 数组 | $O(n)$ | $O(1)$ | $O(n)$ |\n| 链表 | $O(1)$ | $O(n)$ | $O(1)$ |\n| 哈希表 | $O(1)$ | $O(1)$ | $O(1)$ |\n| 二叉搜索树 | $O(\\log n)$ | $O(\\log n)$ | $O(\\log n)$ |\n\n## 复杂数学公式\n\n积分公式：\n$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$\n\n矩阵运算：\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix} = \n\\begin{pmatrix}\nax + by \\\\\ncx + dy\n\\end{pmatrix}$$\n\n求和公式：\n$$\\sum_{k=1}^{n} k^2 = \\frac{n(n+1)(2n+1)}{6}$$",
+            "choices": [
+                "A. 哈希表的平均查找时间复杂度是 $O(1)$",
+                "B. 二叉搜索树的最坏查找时间复杂度是 $O(n)$",
+                "C. 数组的插入时间复杂度总是 $O(n)$",
+                "D. 以上都正确"
+            ],
+            "answer": "D"
         }
         // ...更多题目
     ]
@@ -215,11 +259,19 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 - 支持大部分KaTeX语法，包括分数、积分、求和、矩阵等
 - 建议参考 [KaTeX支持的函数列表](https://katex.org/docs/supported.html)
 
-### 4.3 兼容性说明
+### 4.3 自动适配大小功能
+
+- **智能高度调整**：题目和选项渲染器会根据内容长度自动调整显示高度
+- **窗口适配**：自动适配功能确保内容不会超出主窗口的显示范围
+- **最佳体验**：长题目和复杂公式能够完整显示，短题目则紧凑显示，提供最佳的视觉体验
+- **性能优化**：使用异步JavaScript计算内容高度，不影响界面响应性能
+
+### 4.4 兼容性说明
 
 - Markdown和LaTeX功能需要Qt WebEngine模块支持
 - 旧版本的题库文件完全兼容，无需修改
 - 新功能为可选功能，不使用时不影响题目正常显示
+- 自动适配功能默认启用，可通过代码配置关闭
 
 ---
 

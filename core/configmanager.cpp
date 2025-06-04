@@ -237,17 +237,33 @@ void ConfigManager::parseQuestionBanks(const QJsonObject &json)
         QString subjectName = it.key();
         QJsonObject subjectData = it.value().toObject();
         
-        QuestionBank bank(subjectName);
-        bank.fromJson(subjectData);
-        m_questionBanks[subjectName] = bank;
-        
         // 加载科目路径
+        QString subjectPath;
         if (subjectData.contains("path") && subjectData["path"].isString()) {
-            m_subjectPaths[subjectName] = subjectData["path"].toString();
+            subjectPath = subjectData["path"].toString();
         } else {
             // 如果没有路径信息，使用默认路径
-            m_subjectPaths[subjectName] = QString("Subject/%1").arg(subjectName);
+            subjectPath = QString("Subject/%1").arg(subjectName);
         }
+        m_subjectPaths[subjectName] = subjectPath;
+        
+        // 实时扫描题库目录，获取最新的题库信息
+        QuestionBank bank = BankScanner::scanSubjectDirectory(subjectPath, subjectName);
+        
+        // 如果扫描失败，创建空的题库作为备选
+        if (bank.getChoiceBanks().isEmpty() && 
+            bank.getTrueOrFalseBanks().isEmpty() && 
+            bank.getFillBlankBanks().isEmpty()) {
+            qDebug() << "No question banks found for subject:" << subjectName << "at path:" << subjectPath;
+            qDebug() << "Creating empty question bank as fallback";
+            bank.setSubject(subjectName);
+        }
+        
+        m_questionBanks[subjectName] = bank;
+        qDebug() << "Loaded subject:" << subjectName << "with" 
+                 << bank.getChoiceBanks().size() << "choice banks,"
+                 << bank.getTrueOrFalseBanks().size() << "true/false banks,"
+                 << bank.getFillBlankBanks().size() << "fill blank banks";
     }
 }
 

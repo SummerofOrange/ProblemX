@@ -43,6 +43,17 @@ FORMS += \
 
 INCLUDEPATH += Reference
 
+# Copy resources folder to build directory (same directory as exe)
+CONFIG(debug, debug|release) {
+    DESTDIR = $$OUT_PWD/debug
+    win32: QMAKE_POST_LINK += if not exist "$$shell_path($$OUT_PWD/debug/resources)" mkdir "$$shell_path($$OUT_PWD/debug/resources)" & xcopy /E /I /Y "$$shell_path($$PWD/resources)" "$$shell_path($$OUT_PWD/debug/resources)"
+    unix: QMAKE_POST_LINK += mkdir -p $$OUT_PWD/debug/resources && cp -r $$PWD/resources/* $$OUT_PWD/debug/resources/
+} else {
+    DESTDIR = $$OUT_PWD/release
+    win32: QMAKE_POST_LINK += if not exist "$$shell_path($$OUT_PWD/release/resources)" mkdir "$$shell_path($$OUT_PWD/release/resources)" & xcopy /E /I /Y "$$shell_path($$PWD/resources)" "$$shell_path($$OUT_PWD/release/resources)"
+    unix: QMAKE_POST_LINK += mkdir -p $$OUT_PWD/release/resources && cp -r $$PWD/resources/* $$OUT_PWD/release/resources/
+}
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin

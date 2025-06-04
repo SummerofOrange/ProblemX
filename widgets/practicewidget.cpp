@@ -162,9 +162,9 @@ void PracticeWidget::setupUI()
     m_questionContentLayout->setSpacing(15);
     
     // Question text and image - 使用MarkdownRenderer替换QLabel
-    m_questionTextRenderer = new MarkdownRenderer();
-    m_questionTextRenderer->setMinimumHeight(100);
-    m_questionTextRenderer->setMaximumHeight(300);
+    m_questionTextRenderer = new MarkdownRenderer(this);
+    m_questionTextRenderer->setAutoResize(true, 600);  // 启用自动适配，最大高度600
+    m_questionTextRenderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     
     m_questionImageLabel = new QLabel();
     m_questionImageLabel->setAlignment(Qt::AlignCenter);
@@ -1561,10 +1561,10 @@ void PracticeWidget::restoreUserAnswer()
 
 MarkdownRenderer* PracticeWidget::createChoiceRenderer(const QString &choiceText)
 {
-    MarkdownRenderer *renderer = new MarkdownRenderer();
+    MarkdownRenderer *renderer = new MarkdownRenderer(this);
+    renderer->setAutoResize(true, 300);  // 启用自动适配，最大高度300
+    renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     renderer->setContent(choiceText);
-    renderer->setMinimumHeight(40);
-    renderer->setMaximumHeight(150);
     return renderer;
 }
 
