@@ -350,7 +350,7 @@ void StartWidget::onAboutClicked()
     
     QString aboutText = QString(
         "<h2>ProblemX 智能刷题系统</h2>"
-        "<p><b>版本:</b> Beta 0.2 </p>"
+        "<p><b>版本:</b> Beta 0.3 </p>"
         "<p><b>作者:</b> Orange</p>"
         "<p><b>描述:</b> 一个基于Qt框架开发的智能刷题练习系统，支持多科目题库管理、错题复习等功能。</p>"
         "<hr>"
@@ -366,6 +366,7 @@ void StartWidget::onAboutClicked()
         "<li>智能练习进度管理</li>"
         "<li>错题自动收集与复习</li>"
         "<li>灵活的配置管理</li>"
+        "<li>支持latex和markdown渲染</li>"
         "</ul>"
         "<p><b>联系方式:</b> orangesummer.ovo@qq.com</p>"
     ).arg(QT_VERSION_STR);

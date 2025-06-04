@@ -247,23 +247,21 @@ void ConfigManager::parseQuestionBanks(const QJsonObject &json)
         }
         m_subjectPaths[subjectName] = subjectPath;
         
-        // 实时扫描题库目录，获取最新的题库信息
-        QuestionBank bank = BankScanner::scanSubjectDirectory(subjectPath, subjectName);
+        // 先从配置文件加载题库配置信息（保留用户的选择配置）
+        QuestionBank configBank(subjectName);
+        configBank.fromJson(subjectData);
         
-        // 如果扫描失败，创建空的题库作为备选
-        if (bank.getChoiceBanks().isEmpty() && 
-            bank.getTrueOrFalseBanks().isEmpty() && 
-            bank.getFillBlankBanks().isEmpty()) {
-            qDebug() << "No question banks found for subject:" << subjectName << "at path:" << subjectPath;
-            qDebug() << "Creating empty question bank as fallback";
-            bank.setSubject(subjectName);
-        }
+        // 实时扫描题库目录，获取最新的题库文件信息
+        QuestionBank scannedBank = BankScanner::scanSubjectDirectory(subjectPath, subjectName);
         
-        m_questionBanks[subjectName] = bank;
+        // 合并配置信息和实时扫描信息
+        QuestionBank mergedBank = mergeQuestionBankInfo(configBank, scannedBank, subjectName);
+        
+        m_questionBanks[subjectName] = mergedBank;
         qDebug() << "Loaded subject:" << subjectName << "with" 
-                 << bank.getChoiceBanks().size() << "choice banks,"
-                 << bank.getTrueOrFalseBanks().size() << "true/false banks,"
-                 << bank.getFillBlankBanks().size() << "fill blank banks";
+                 << mergedBank.getChoiceBanks().size() << "choice banks,"
+                 << mergedBank.getTrueOrFalseBanks().size() << "true/false banks,"
+                 << mergedBank.getFillBlankBanks().size() << "fill blank banks";
     }
 }
 
@@ -539,4 +537,74 @@ QJsonObject ConfigManager::checkpointToJson() const
     json["AnswerStatus"] = statusObj;
     
     return json;
+}
+
+QuestionBank ConfigManager::mergeQuestionBankInfo(const QuestionBank &configBank, const QuestionBank &scannedBank, const QString &subjectName) const
+{
+    QuestionBank mergedBank(subjectName);
+    
+    // 合并选择题题库
+    QVector<QuestionBankInfo> mergedChoiceBanks;
+    auto configChoiceBanks = configBank.getChoiceBanks();
+    auto scannedChoiceBanks = scannedBank.getChoiceBanks();
+    
+    for (const auto &scannedBank : scannedChoiceBanks) {
+        QuestionBankInfo mergedInfo = scannedBank;
+        
+        // 查找配置文件中对应的题库信息
+        for (const auto &configInfo : configChoiceBanks) {
+            if (configInfo.src == scannedBank.src) {
+                // 保留用户配置信息，更新实际题目数量
+                mergedInfo.chosen = configInfo.chosen;
+                mergedInfo.chosennum = qMin(configInfo.chosennum, scannedBank.size); // 确保不超过实际题目数
+                break;
+            }
+        }
+        mergedChoiceBanks.append(mergedInfo);
+    }
+    mergedBank.setChoiceBanks(mergedChoiceBanks);
+    
+    // 合并判断题题库
+    QVector<QuestionBankInfo> mergedTrueOrFalseBanks;
+    auto configTrueOrFalseBanks = configBank.getTrueOrFalseBanks();
+    auto scannedTrueOrFalseBanks = scannedBank.getTrueOrFalseBanks();
+    
+    for (const auto &scannedBank : scannedTrueOrFalseBanks) {
+        QuestionBankInfo mergedInfo = scannedBank;
+        
+        // 查找配置文件中对应的题库信息
+        for (const auto &configInfo : configTrueOrFalseBanks) {
+            if (configInfo.src == scannedBank.src) {
+                // 保留用户配置信息，更新实际题目数量
+                mergedInfo.chosen = configInfo.chosen;
+                mergedInfo.chosennum = qMin(configInfo.chosennum, scannedBank.size); // 确保不超过实际题目数
+                break;
+            }
+        }
+        mergedTrueOrFalseBanks.append(mergedInfo);
+    }
+    mergedBank.setTrueOrFalseBanks(mergedTrueOrFalseBanks);
+    
+    // 合并填空题题库
+    QVector<QuestionBankInfo> mergedFillBlankBanks;
+    auto configFillBlankBanks = configBank.getFillBlankBanks();
+    auto scannedFillBlankBanks = scannedBank.getFillBlankBanks();
+    
+    for (const auto &scannedBank : scannedFillBlankBanks) {
+        QuestionBankInfo mergedInfo = scannedBank;
+        
+        // 查找配置文件中对应的题库信息
+        for (const auto &configInfo : configFillBlankBanks) {
+            if (configInfo.src == scannedBank.src) {
+                // 保留用户配置信息，更新实际题目数量
+                mergedInfo.chosen = configInfo.chosen;
+                mergedInfo.chosennum = qMin(configInfo.chosennum, scannedBank.size); // 确保不超过实际题目数
+                break;
+            }
+        }
+        mergedFillBlankBanks.append(mergedInfo);
+    }
+    mergedBank.setFillBlankBanks(mergedFillBlankBanks);
+    
+    return mergedBank;
 }

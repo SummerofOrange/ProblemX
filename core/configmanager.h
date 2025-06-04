@@ -87,6 +87,7 @@ private:
     QJsonObject questionBanksToJson() const;
     void parseCheckpoint(const QJsonObject &json);
     QJsonObject checkpointToJson() const;
+    QuestionBank mergeQuestionBankInfo(const QuestionBank &configBank, const QuestionBank &scannedBank, const QString &subjectName) const;
 };
 
 #endif // CONFIGMANAGER_H
