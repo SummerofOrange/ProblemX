@@ -1,6 +1,7 @@
 #include "practicewidget.h"
 #include "../core/practicemanager.h"
 #include "../models/question.h"
+#include "../utils/markdownrenderer.h"
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -160,18 +161,17 @@ void PracticeWidget::setupUI()
     m_questionContentLayout->setContentsMargins(10, 10, 10, 10);
     m_questionContentLayout->setSpacing(15);
     
-    // Question text and image
-    m_questionTextLabel = new QLabel();
-    m_questionTextLabel->setWordWrap(true);
-    m_questionTextLabel->setObjectName("questionText");
-    m_questionTextLabel->setTextFormat(Qt::RichText);
+    // Question text and image - 使用MarkdownRenderer替换QLabel
+    m_questionTextRenderer = new MarkdownRenderer();
+    m_questionTextRenderer->setMinimumHeight(100);
+    m_questionTextRenderer->setMaximumHeight(300);
     
     m_questionImageLabel = new QLabel();
     m_questionImageLabel->setAlignment(Qt::AlignCenter);
     m_questionImageLabel->setScaledContents(false);
     m_questionImageLabel->setVisible(false);
     
-    m_questionContentLayout->addWidget(m_questionTextLabel);
+    m_questionContentLayout->addWidget(m_questionTextRenderer);
     m_questionContentLayout->addWidget(m_questionImageLabel);
     
     // Answer input stack
@@ -877,15 +877,7 @@ void PracticeWidget::updateQuestionDisplay()
     }
     m_questionTypeLabel->setText(typeStr);
     
-    // Update question text (support markdown-like formatting)
-    QString questionText = currentQuestion.getQuestion();
-    // 先转义HTML特殊字符，防止代码中的<、>等符号被误解为HTML标签
-    questionText.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    // Simple markdown to HTML conversion
-    questionText.replace("**", "<b>").replace("**", "</b>");
-    questionText.replace("*", "<i>").replace("*", "</i>");
-    questionText.replace("\n", "<br>");
-    m_questionTextLabel->setText(questionText);
+    // 题目文本将在各个display函数中设置，这里不需要单独设置
     
     // Update question image
     QString imagePath = currentQuestion.getImagePath();
@@ -1020,26 +1012,50 @@ void PracticeWidget::updateQuestionDisplay()
 
 void PracticeWidget::displayChoiceQuestion(const Question &question)
 {
-    QStringList choices = question.getChoices();
+    // 清除旧的选项渲染器
+    for (auto renderer : m_choiceRenderers) {
+        renderer->deleteLater();
+    }
+    m_choiceRenderers.clear();
     
-    // Clear existing buttons
-    for (QRadioButton *button : m_choiceButtons) {
+    // 清除旧的选项按钮
+    for (auto button : m_choiceButtons) {
         m_choiceButtonGroup->removeButton(button);
         button->deleteLater();
     }
     m_choiceButtons.clear();
     
-    // Create new buttons
-    QStringList labels = {"A", "B", "C", "D", "E", "F"};
+    // 设置题目内容
+    m_questionTextRenderer->setContent(question.getQuestion());
+    
+    // 创建新的选项
+    const QStringList &choices = question.getChoices();
+    const QStringList labels = {"A", "B", "C", "D", "E", "F", "G", "H"};
+    
     for (int i = 0; i < choices.size() && i < labels.size(); ++i) {
-        // QRadioButton *button = new QRadioButton(QString("%1. %2").arg(labels[i]).arg(choices[i]));
-        QRadioButton *button = new QRadioButton(choices[i]);
-        button->setObjectName("choiceButton");
-        m_choiceButtons.append(button);
-        m_choiceButtonGroup->addButton(button, i);
-        m_choiceLayout->addWidget(button);
+        // 创建选项容器
+        QWidget *choiceContainer = new QWidget();
+        QHBoxLayout *choiceLayout = new QHBoxLayout(choiceContainer);
+        choiceLayout->setContentsMargins(0, 0, 0, 0);
+        choiceLayout->setSpacing(10);
         
-        connect(button, &QRadioButton::toggled, this, &PracticeWidget::onChoiceSelected);
+        // 创建单选按钮
+        QRadioButton *radioButton = new QRadioButton(labels[i]);
+        radioButton->setFixedWidth(30);
+        
+        // 创建选项内容渲染器
+        MarkdownRenderer *choiceRenderer = createChoiceRenderer(choices[i]);
+        
+        choiceLayout->addWidget(radioButton);
+        choiceLayout->addWidget(choiceRenderer, 1);
+        
+        m_choiceLayout->addWidget(choiceContainer);
+        
+        m_choiceButtons.append(radioButton);
+        m_choiceRenderers.append(choiceRenderer);
+        m_choiceButtonGroup->addButton(radioButton, i);
+        
+        connect(radioButton, &QRadioButton::toggled, this, &PracticeWidget::onChoiceSelected);
     }
     
     m_choiceLayout->addStretch();
@@ -1047,14 +1063,21 @@ void PracticeWidget::displayChoiceQuestion(const Question &question)
 
 void PracticeWidget::displayTrueOrFalseQuestion(const Question &question)
 {
-    Q_UNUSED(question)
+    // 清除旧的选项渲染器
+    for (auto renderer : m_choiceRenderers) {
+        renderer->deleteLater();
+    }
+    m_choiceRenderers.clear();
     
-    // Clear existing buttons
+    // 清除旧的选项按钮
     for (QRadioButton *button : m_choiceButtons) {
         m_choiceButtonGroup->removeButton(button);
         button->deleteLater();
     }
     m_choiceButtons.clear();
+    
+    // 设置题目内容
+    m_questionTextRenderer->setContent(question.getQuestion());
     
     // Create True/False buttons
     QRadioButton *trueButton = new QRadioButton("A. 正确");
@@ -1079,6 +1102,9 @@ void PracticeWidget::displayTrueOrFalseQuestion(const Question &question)
 
 void PracticeWidget::displayFillBlankQuestion(const Question &question)
 {
+    // 设置题目内容
+    m_questionTextRenderer->setContent(question.getQuestion());
+    
     // Clear existing edits
     for (QLineEdit *edit : m_fillBlankEdits) {
         edit->deleteLater();
@@ -1108,6 +1134,15 @@ void PracticeWidget::displayFillBlankQuestion(const Question &question)
 
 void PracticeWidget::displayMultiChoiceQuestion(const Question &question)
 {
+    // 清除旧的选项渲染器
+    for (auto renderer : m_choiceRenderers) {
+        renderer->deleteLater();
+    }
+    m_choiceRenderers.clear();
+    
+    // 设置题目内容
+    m_questionTextRenderer->setContent(question.getQuestion());
+    
     QStringList choices = question.getChoices();
     
     // Clear existing checkboxes
@@ -1117,13 +1152,29 @@ void PracticeWidget::displayMultiChoiceQuestion(const Question &question)
     m_multiChoiceBoxes.clear();
     
     // Create new checkboxes
-    QStringList labels = {"A", "B", "C", "D", "E", "F"};
+    QStringList labels = {"A", "B", "C", "D", "E", "F", "G", "H"};
     for (int i = 0; i < choices.size() && i < labels.size(); ++i) {
-        // QCheckBox *checkbox = new QCheckBox(QString("%1. %2").arg(labels[i]).arg(choices[i]));
-        QCheckBox *checkbox = new QCheckBox(choices[i]);
+        // 创建选项容器
+        QWidget *choiceContainer = new QWidget();
+        QHBoxLayout *choiceLayout = new QHBoxLayout(choiceContainer);
+        choiceLayout->setContentsMargins(0, 0, 0, 0);
+        choiceLayout->setSpacing(10);
+        
+        // 创建复选框
+        QCheckBox *checkbox = new QCheckBox(labels[i]);
+        checkbox->setFixedWidth(30);
         checkbox->setObjectName("multiChoiceBox");
+        
+        // 创建选项内容渲染器
+        MarkdownRenderer *choiceRenderer = createChoiceRenderer(choices[i]);
+        
+        choiceLayout->addWidget(checkbox);
+        choiceLayout->addWidget(choiceRenderer, 1);
+        
+        m_multiChoiceLayout->addWidget(choiceContainer);
+        
         m_multiChoiceBoxes.append(checkbox);
-        m_multiChoiceLayout->addWidget(checkbox);
+        m_choiceRenderers.append(choiceRenderer);
         
         connect(checkbox, &QCheckBox::toggled, [this]() {
             bool hasSelection = false;
@@ -1244,6 +1295,12 @@ void PracticeWidget::updateStatistics()
 
 void PracticeWidget::clearAnswerInputs()
 {
+    // Clear choice renderers
+    for (auto renderer : m_choiceRenderers) {
+        renderer->deleteLater();
+    }
+    m_choiceRenderers.clear();
+    
     // Clear choice buttons
     for (QRadioButton *button : m_choiceButtons) {
         m_choiceButtonGroup->removeButton(button);
@@ -1500,6 +1557,15 @@ void PracticeWidget::restoreUserAnswer()
             break;
         }
     }
+}
+
+MarkdownRenderer* PracticeWidget::createChoiceRenderer(const QString &choiceText)
+{
+    MarkdownRenderer *renderer = new MarkdownRenderer();
+    renderer->setContent(choiceText);
+    renderer->setMinimumHeight(40);
+    renderer->setMaximumHeight(150);
+    return renderer;
 }
 
 void PracticeWidget::hideAnswerResult()

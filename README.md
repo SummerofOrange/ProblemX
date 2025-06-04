@@ -12,6 +12,8 @@ ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮
 
 - **多科目支持**：可自由添加和管理不同学科的题库
 - **多题型支持**：支持选择题、判断题、填空题等多种题型
+- **Markdown渲染**：支持在题目中使用Markdown格式，包括粗体、斜体、代码块等
+- **LaTeX数学公式**：集成KaTeX引擎，支持在题目中渲染LaTeX数学公式
 - **练习模式**：随机或顺序练习，支持自定义题目数量
 - **错题管理**：自动收集错题，支持错题复习
 - **进度保存**：支持中途保存练习进度，随时可以继续上次的练习
@@ -24,6 +26,7 @@ ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮
 ### 系统要求
 
 - Qt 6.8 或更高版本
+- Qt WebEngine 模块（用于Markdown和LaTeX渲染）
 - C++17 兼容的编译器
 - 支持 Windows、Linux 和 macOS 平台
 
@@ -142,8 +145,11 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 
 ## 更新日志
 
-### **2025/05/31(Beta 0.2 latest)**
-  - 修复了练习模块 (`practicewidget.cpp`) 和错题复习模块 (`reviewwidget.cpp`) 中，当题目文本（如代码片段）包含特殊HTML字符（例如 `<`, `>`）时，可能导致的题目显示不完整或渲染异常的问题。通过在 `updateQuestionDisplay` 和 `displayWrongAnswerDetails` 方法中对这些特殊字符进行转义，确保了题目内容的正确渲染。
+### **2025/06/04(Beta 0.3 latest)**
+  - **新增Markdown渲染支持**：集成Qt WebEngine模块，支持在题目中使用Markdown格式，包括粗体、斜体、代码块、列表等格式
+  - **新增LaTeX数学公式支持**：集成KaTeX引擎，支持在题目中渲染LaTeX数学公式，提升数学类题目的显示效果
+  - **优化题目显示**：通过`MarkdownRenderer`类提供更好的题目内容渲染体验
+  - **改进依赖管理**：添加Qt WebEngine模块依赖，确保Markdown和LaTeX功能正常运行
 
 请参阅 [CHANGELOG](CHANGELOG.md) 文件以获取详细的更新日志。
 

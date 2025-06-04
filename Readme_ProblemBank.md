@@ -67,6 +67,16 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 -   `"type"` (String): **必需**。表示题目的类型。其值必须与该题库所在的 `<题型名称>` 文件夹名称**完全一致** (区分大小写)。
     -   例如，在 `Choice` 文件夹下的题库，题目类型应为 `"Choice"`。
 -   `"question"` (String): **必需**。表示题目的题干内容。可以使用 `\n` 来表示换行。
+    -   **Markdown支持**: 题目内容支持Markdown格式，包括：
+        - **粗体文本**: `**粗体**` 或 `__粗体__`
+        - *斜体文本*: `*斜体*` 或 `_斜体_`
+        - `代码`: `` `代码` ``
+        - 代码块: `` ```语言\n代码内容\n``` ``
+        - 列表: `- 项目` 或 `1. 项目`
+    -   **LaTeX数学公式支持**: 支持使用KaTeX引擎渲染数学公式：
+        - 行内公式: `$公式内容$`
+        - 块级公式: `$$公式内容$$`
+        - 示例: `$E = mc^2$` 或 `$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$`
 -   `"image"` (String, 可选): 如果题目包含图片，此字段表示图片的**相对路径**。路径的基准点是**当前JSON题库文件所在的目录**。
     -   例如，如果题库文件是 `Subject/DataStructure/Choice/Chapter1_Choice.json`，图片位于 `Subject/DataStructure/Choice/Asset/chapter1/image1.png`，则 `"image"` 字段应填入 `"Asset/chapter1/image1.png"`。
 
@@ -92,6 +102,22 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
     ],
     "answer": "B",
     "image": "Asset/complexity/figure1.png" // 可选的图片路径
+}
+```
+
+**包含Markdown和LaTeX的选择题示例:**
+
+```json
+{
+    "type": "Choice",
+    "question": "已知函数 $f(x) = x^2 + 2x + 1$，求 $f'(x)$ 的值。\n\n**提示**: 使用求导公式 $(x^n)' = nx^{n-1}$\n\n```python\ndef derivative(x):\n    return 2*x + 2\n```",
+    "choices": [
+        "A. $2x + 1$",
+        "B. $2x + 2$",
+        "C. $x^2 + 2$",
+        "D. $2x^2 + 2x$"
+    ],
+    "answer": "B"
 }
 ```
 
@@ -170,6 +196,30 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
     ]
 }
 ```
+
+---
+
+## 4. Markdown和LaTeX功能使用注意事项
+
+### 4.1 Markdown格式注意事项
+
+- 在JSON字符串中使用Markdown时，需要注意转义字符的使用
+- 换行符使用 `\n` 表示
+- 代码块中的反引号需要适当转义
+- 建议在编写复杂Markdown内容前先在Markdown编辑器中测试
+
+### 4.2 LaTeX数学公式注意事项
+
+- 使用 `$...$` 表示行内公式，`$$...$$` 表示块级公式
+- 在JSON字符串中，反斜杠需要双重转义，例如 `\\frac{1}{2}` 表示 `\frac{1}{2}`
+- 支持大部分KaTeX语法，包括分数、积分、求和、矩阵等
+- 建议参考 [KaTeX支持的函数列表](https://katex.org/docs/supported.html)
+
+### 4.3 兼容性说明
+
+- Markdown和LaTeX功能需要Qt WebEngine模块支持
+- 旧版本的题库文件完全兼容，无需修改
+- 新功能为可选功能，不使用时不影响题目正常显示
 
 ---
 

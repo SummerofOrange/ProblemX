@@ -3,6 +3,7 @@
 #include "../core/practicemanager.h"
 #include "../models/question.h"
 #include "../utils/jsonutils.h"
+#include "../utils/markdownrenderer.h"
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -308,22 +309,18 @@ void ReviewWidget::setupUI()
     m_detailSubjectLabel->setObjectName("detailSubject");
     m_detailTypeLabel = new QLabel();
     m_detailTypeLabel->setObjectName("detailType");
-    m_detailQuestionLabel = new QLabel();
-    m_detailQuestionLabel->setWordWrap(true);
-    m_detailQuestionLabel->setObjectName("detailQuestion");
+    m_detailQuestionRenderer = new MarkdownRenderer();
+    m_detailQuestionRenderer->setObjectName("detailQuestion");
     m_detailImageLabel = new QLabel();
     m_detailImageLabel->setAlignment(Qt::AlignCenter);
     m_detailImageLabel->setScaledContents(false);
     m_detailImageLabel->setVisible(false);
-    m_detailChoicesLabel = new QLabel();
-    m_detailChoicesLabel->setWordWrap(true);
-    m_detailChoicesLabel->setObjectName("detailChoices");
-    m_detailCorrectAnswerLabel = new QLabel();
-    m_detailCorrectAnswerLabel->setWordWrap(true);
-    m_detailCorrectAnswerLabel->setObjectName("detailCorrectAnswer");
-    m_detailUserAnswerLabel = new QLabel();
-    m_detailUserAnswerLabel->setWordWrap(true);
-    m_detailUserAnswerLabel->setObjectName("detailUserAnswer");
+    m_detailChoicesRenderer = new MarkdownRenderer();
+    m_detailChoicesRenderer->setObjectName("detailChoices");
+    m_detailCorrectAnswerRenderer = new MarkdownRenderer();
+    m_detailCorrectAnswerRenderer->setObjectName("detailCorrectAnswer");
+    m_detailUserAnswerRenderer = new MarkdownRenderer();
+    m_detailUserAnswerRenderer->setObjectName("detailUserAnswer");
     m_detailTimestampLabel = new QLabel();
     m_detailTimestampLabel->setObjectName("detailTimestamp");
     m_detailReviewCountLabel = new QLabel();
@@ -333,11 +330,11 @@ void ReviewWidget::setupUI()
     
     m_detailsContentLayout->addWidget(m_detailSubjectLabel);
     m_detailsContentLayout->addWidget(m_detailTypeLabel);
-    m_detailsContentLayout->addWidget(m_detailQuestionLabel);
+    m_detailsContentLayout->addWidget(m_detailQuestionRenderer);
     m_detailsContentLayout->addWidget(m_detailImageLabel);
-    m_detailsContentLayout->addWidget(m_detailChoicesLabel);
-    m_detailsContentLayout->addWidget(m_detailCorrectAnswerLabel);
-    m_detailsContentLayout->addWidget(m_detailUserAnswerLabel);
+    m_detailsContentLayout->addWidget(m_detailChoicesRenderer);
+    m_detailsContentLayout->addWidget(m_detailCorrectAnswerRenderer);
+    m_detailsContentLayout->addWidget(m_detailUserAnswerRenderer);
     m_detailsContentLayout->addWidget(m_detailTimestampLabel);
     m_detailsContentLayout->addWidget(m_detailReviewCountLabel);
     m_detailsContentLayout->addWidget(m_detailStatusLabel);
@@ -957,7 +954,7 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
     questionText.replace(">", "&gt;");
     // Replace newlines with <br> for HTML display
     questionText.replace("\n", "<br>");
-    m_detailQuestionLabel->setText(QString("题目: %1").arg(questionText));
+    m_detailQuestionRenderer->setContent(QString("**题目:** %1").arg(questionText));
     
     // Display image if exists
     if (!item.imagePath.isEmpty()) {
@@ -1029,10 +1026,10 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
         for (int i = 0; i < item.choices.size() && i < labels.size(); ++i) {
             choicesText += QString("%1. %2\n").arg(labels[i]).arg(item.choices[i]);
         }
-        m_detailChoicesLabel->setText(choicesText.trimmed());
-        m_detailChoicesLabel->setVisible(true);
+        m_detailChoicesRenderer->setContent(choicesText.trimmed());
+        m_detailChoicesRenderer->setVisible(true);
     } else {
-        m_detailChoicesLabel->setVisible(false);
+        m_detailChoicesRenderer->setVisible(false);
     }
     
     // Display correct answer
@@ -1042,7 +1039,7 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
     } else {
         correctAnswerText = QString("正确答案: %1").arg(item.correctAnswer);
     }
-    m_detailCorrectAnswerLabel->setText(correctAnswerText);
+    m_detailCorrectAnswerRenderer->setContent(correctAnswerText);
     
     // Display user answer
     QString userAnswerText;
@@ -1051,7 +1048,7 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
     } else {
         userAnswerText = QString("你的答案: %1").arg(item.userAnswer);
     }
-    m_detailUserAnswerLabel->setText(userAnswerText);
+    m_detailUserAnswerRenderer->setContent(userAnswerText);
     
     m_detailTimestampLabel->setText(QString("错误时间: %1").arg(formatDateTime(item.timestamp)));
     m_detailReviewCountLabel->setText(QString("复习次数: %1").arg(item.reviewCount));
@@ -1062,11 +1059,11 @@ void ReviewWidget::clearWrongAnswerDetails()
 {
     m_detailSubjectLabel->setText("科目: -");
     m_detailTypeLabel->setText("题型: -");
-    m_detailQuestionLabel->setText("题目: 请选择一道错题查看详情");
+    m_detailQuestionRenderer->setContent("**题目:** 请选择一道错题查看详情");
     m_detailImageLabel->setVisible(false);
-    m_detailChoicesLabel->setVisible(false);
-    m_detailCorrectAnswerLabel->setText("正确答案: -");
-    m_detailUserAnswerLabel->setText("你的答案: -");
+    m_detailChoicesRenderer->setVisible(false);
+    m_detailCorrectAnswerRenderer->setContent("**正确答案:** -");
+    m_detailUserAnswerRenderer->setContent("**你的答案:** -");
     m_detailTimestampLabel->setText("错误时间: -");
     m_detailReviewCountLabel->setText("复习次数: -");
     m_detailStatusLabel->setText("状态: -");

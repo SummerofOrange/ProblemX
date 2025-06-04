@@ -29,6 +29,7 @@
 #include <QJsonArray>
 #include "../models/question.h"
 #include "../core/wronganswerset.h"
+#include "../utils/markdownrenderer.h"  // 新增
 
 class ConfigManager;
 class PracticeManager;
@@ -182,21 +183,20 @@ private:
     QWidget *m_rightPanel;
     QVBoxLayout *m_rightLayout;
     
-    // Details group
+    // Details group - 修改为使用MarkdownRenderer
     QGroupBox *m_detailsGroup;
     QVBoxLayout *m_detailsLayout;
     QScrollArea *m_detailsScrollArea;
     QWidget *m_detailsContent;
     QVBoxLayout *m_detailsContentLayout;
     
-    // Detail labels
     QLabel *m_detailSubjectLabel;
     QLabel *m_detailTypeLabel;
-    QLabel *m_detailQuestionLabel;
+    MarkdownRenderer *m_detailQuestionRenderer;  // 替换QLabel
     QLabel *m_detailImageLabel;
-    QLabel *m_detailChoicesLabel;
-    QLabel *m_detailCorrectAnswerLabel;
-    QLabel *m_detailUserAnswerLabel;
+    MarkdownRenderer *m_detailChoicesRenderer;   // 替换QLabel
+    MarkdownRenderer *m_detailCorrectAnswerRenderer;  // 替换QLabel
+    MarkdownRenderer *m_detailUserAnswerRenderer;     // 替换QLabel
     QLabel *m_detailTimestampLabel;
     QLabel *m_detailReviewCountLabel;
     QLabel *m_detailStatusLabel;

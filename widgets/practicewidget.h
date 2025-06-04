@@ -24,6 +24,7 @@
 #include <QKeyEvent>
 #include <QShortcut>
 #include "../models/question.h"
+#include "../utils/markdownrenderer.h"  // 新增
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -112,6 +113,9 @@ private:
     void displayFillBlankQuestion(const Question &question);
     void displayMultiChoiceQuestion(const Question &question);
     
+    // 新增：创建选项渲染器
+    MarkdownRenderer* createChoiceRenderer(const QString &choiceText);
+    
     QString getCurrentAnswer() const;
     QStringList getCurrentAnswers() const;
     void restoreUserAnswer();
@@ -136,21 +140,20 @@ private:
     QLabel *m_timerLabel;
     QPushButton *m_pauseButton;
     
-    // Question Content
+    // Question Content - 修改为使用MarkdownRenderer
     QScrollArea *m_questionScrollArea;
     QWidget *m_questionContent;
     QVBoxLayout *m_questionContentLayout;
-    QLabel *m_questionTextLabel;
+    MarkdownRenderer *m_questionTextRenderer;  // 替换原来的QLabel
     QLabel *m_questionImageLabel;
+    QStackedWidget *m_answerStack;  // 答案输入区域的堆叠组件
     
-    // Answer Input Area
-    QStackedWidget *m_answerStack;
-    
-    // Choice Question Widgets
+    // Choice Question Widgets - 修改为支持Markdown渲染
     QWidget *m_choiceWidget;
     QVBoxLayout *m_choiceLayout;
     QButtonGroup *m_choiceButtonGroup;
     QVector<QRadioButton*> m_choiceButtons;
+    QVector<MarkdownRenderer*> m_choiceRenderers;  // 新增：选项渲染器
     
     // Multi-Choice Question Widgets
     QWidget *m_multiChoiceWidget;
