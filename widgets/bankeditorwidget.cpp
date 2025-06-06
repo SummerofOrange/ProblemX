@@ -1,5 +1,6 @@
 #include "bankeditorwidget.h"
 #include "../core/configmanager.h"
+#include "../models/questionbank.h"
 #include <QShowEvent>
 #include <QDebug>
 #include <QDir>
@@ -45,19 +46,53 @@ void BankEditorWidget::setBankInfo(const QString &subject, const QString &bankTy
         bankDir = "MultiChoice";
     }
     
-    // 使用ConfigManager获取科目路径
+    // 使用ConfigManager获取科目路径和题库信息
     ConfigManager configManager;
     QString subjectPath = configManager.getSubjectPath(subject);
+    QuestionBank bank = configManager.getQuestionBank(subject);
+    
+    // 根据题库类型和索引获取正确的题库文件名
+    QString bankFileName;
+    QuestionBankInfo bankInfo;
+    bool found = false;
+    
+    if (bankType == "choice") {
+        QVector<QuestionBankInfo> choiceBanks = bank.getChoiceBanks();
+        if (bankIndex >= 0 && bankIndex < choiceBanks.size()) {
+            bankInfo = choiceBanks[bankIndex];
+            found = true;
+        }
+    } else if (bankType == "trueorfalse") {
+        QVector<QuestionBankInfo> trueOrFalseBanks = bank.getTrueOrFalseBanks();
+        if (bankIndex >= 0 && bankIndex < trueOrFalseBanks.size()) {
+            bankInfo = trueOrFalseBanks[bankIndex];
+            found = true;
+        }
+    } else if (bankType == "fillblank") {
+        QVector<QuestionBankInfo> fillBlankBanks = bank.getFillBlankBanks();
+        if (bankIndex >= 0 && bankIndex < fillBlankBanks.size()) {
+            bankInfo = fillBlankBanks[bankIndex];
+            found = true;
+        }
+    }
+    
+    if (found) {
+        bankFileName = bankInfo.name;
+    } else {
+        qDebug() << "Warning: Could not find bank info for" << bankType << "index" << bankIndex;
+        bankFileName = subject; // 回退到使用科目名称
+    }
     
     // 构建题库文件路径：科目路径 + 题目类型目录 + 题库文件名.json
-    m_bankFilePath = QString("%1/%2/%3.json").arg(subjectPath).arg(bankDir).arg(subject);
+    m_bankFilePath = QString("%1/%2/%3.json").arg(subjectPath).arg(bankDir).arg(bankFileName);
     
     qDebug() << "BankEditorWidget::setBankInfo - Subject:" << subject << "BankType:" << bankType << "Index:" << bankIndex;
     qDebug() << "BankEditorWidget::setBankInfo - Subject path:" << subjectPath;
+    qDebug() << "BankEditorWidget::setBankInfo - Bank file name:" << bankFileName;
     qDebug() << "BankEditorWidget::setBankInfo - Bank file path:" << m_bankFilePath;
     
     // 更新界面标题
-    QString bankName = QString("%1 - %2").arg(subject).arg(bankDir);
+    QString bankName = QString("%1 - %2 - %3").arg(subject).arg(bankDir).arg(bankFileName);
     m_bankInfoLabel->setText(bankName);
     
     loadQuestions();
