@@ -6,12 +6,12 @@
 
 ## 项目概述
 
-ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮助学生高效地进行各类科目的题目练习。系统支持多种题型（选择题、判断题、填空题），提供练习模式、错题复习、进度保存等功能，并支持从雨课堂等平台导入题库。
+ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮助学生高效地进行各类科目的题目练习。系统支持多种题型（选择题、多选题、判断题、填空题），提供练习模式、错题复习、进度保存等功能，并支持从雨课堂等平台导入题库。
 
 ## 功能特点
 
 - **多科目支持**：可自由添加和管理不同学科的题库
-- **多题型支持**：支持选择题、判断题、填空题等多种题型
+- **多题型支持**：支持选择题、多选题、判断题、填空题等多种题型
 - **Markdown渲染**：支持在题目中使用Markdown格式，包括粗体、斜体、代码块等
 - **LaTeX数学公式**：集成KaTeX引擎，支持在题目中渲染LaTeX数学公式
 - **练习模式**：随机或顺序练习，支持自定义题目数量
@@ -40,9 +40,7 @@ cd ProblemX
 ```
 
 2. 使用 Qt Creator 打开 `ProblemX.pro` 文件
-
 3. 配置项目并构建
-
 4. 运行应用程序
 
 ### 预编译版本
@@ -50,6 +48,8 @@ cd ProblemX
 您也可以从 [Releases](https://github.com/SummerofOrange/ProblemX/releases) 页面下载预编译的二进制文件。
 
 ## 使用方法
+
+你可以参考[Quick Start Guide](QuickStart.md)来快速上手ProblemX。
 
 ### 基本操作
 
@@ -59,6 +59,7 @@ cd ProblemX
 4. **开始练习**：按照提示完成题目练习
 5. **查看结果**：练习完成后查看统计结果
 6. **复习错题**：通过错题集功能复习错误的题目
+7. **编辑题库**：方便用户自行编辑题库
 
 ### 题库管理
 
@@ -77,9 +78,11 @@ DataStructure/Choice/U1_Choice.json
 ```
 
 题型目录包括：
+
 - `Choice`：选择题
 - `TrueorFalse`：判断题
 - `FillBlank`：填空题
+- `MultipleChoice`：多选题
 
 ### 题库格式
 
@@ -109,12 +112,14 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 │   └── questionbank.*     # 题库模型
 ├── utils/                 # 工具类
 │   ├── bankscanner.*      # 题库扫描
-│   └── jsonutils.*        # JSON处理
+│   ├── jsonutils.*        # JSON处理
+│   └── markdownrenderer.* # Markdown渲染
 ├── widgets/               # 界面组件
 │   ├── startwidget.*      # 开始界面
 │   ├── configwidget.*     # 配置界面
 │   ├── practicewidget.*   # 练习界面
-│   └── reviewwidget.*     # 复习界面
+│   ├── reviewwidget.*     # 复习界面
+│   └── bankeditorwidget.* # 题库编辑界面
 ├── Subject/               # 题库目录
 ├── convert_Yuketang_to_problemx.py  # 雨课堂转换工具
 ├── main.cpp               # 程序入口
@@ -145,13 +150,14 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 
 ## 更新日志
 
-### **2025/06/04(Beta 0.3 latest)**
-  - **新增Markdown渲染支持**：集成Qt WebEngine模块，支持在题目中使用Markdown格式，包括粗体、斜体、代码块、列表等格式
-  - **新增LaTeX数学公式支持**：集成KaTeX引擎，支持在题目中渲染LaTeX数学公式，提升数学类题目的显示效果
-  - **优化题目显示**：通过`MarkdownRenderer`类提供更好的题目内容渲染体验
-  - **新增自动适配大小功能**：`MarkdownRenderer`组件现在支持根据内容长度自动调整高度，同时确保不超出主窗口范围
-  - **改进用户体验**：题面和选项渲染器能够智能适配内容大小，提供更好的视觉效果
-  - **改进依赖管理**：添加Qt WebEngine模块依赖，确保Markdown和LaTeX功能正常运行
+### **v1.0 (latest)**
+
+- **新增题库编辑功能**：全新的题库编辑器，支持创建、编辑和管理各种题型的题目
+- **新增题库预览功能**：实时预览题目内容和格式，确保题目显示效果
+- **支持多题型编辑**：完整支持选择题、判断题、多选题和填空题的编辑
+- **智能题库管理**：自动识别题库文件路径，支持从配置文件中读取科目路径
+- **增强用户体验**：提供直观的编辑界面和实时预览，简化题库创建流程
+- **完善错误处理**：添加详细的调试信息和用户友好的错误提示
 
 请参阅 [CHANGELOG](CHANGELOG.md) 文件以获取详细的更新日志。
 

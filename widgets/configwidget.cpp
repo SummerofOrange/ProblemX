@@ -1,4 +1,5 @@
 #include "configwidget.h"
+#include "bankeditorwidget.h"
 #include "../core/configmanager.h"
 #include "../models/questionbank.h"
 #include <QTreeWidget>
@@ -32,6 +33,9 @@ ConfigWidget::ConfigWidget(QWidget *parent)
     : QWidget(parent)
     , m_configManager(nullptr)
     , m_isLoading(false)
+    , m_stackedWidget(nullptr)
+    , m_bankEditorWidget(nullptr)
+    , m_currentBankIndex(-1)
 {
     setupUI();
     setupConnections();
@@ -62,8 +66,14 @@ void ConfigWidget::refreshData()
 
 void ConfigWidget::setupUI()
 {
+    // Create stacked widget for main content and bank editor
+    m_stackedWidget = new QStackedWidget(this);
+    
+    // Create main config widget
+    QWidget *mainConfigWidget = new QWidget();
+    
     // Create main splitter
-    m_mainSplitter = new QSplitter(Qt::Horizontal, this);
+    m_mainSplitter = new QSplitter(Qt::Horizontal, mainConfigWidget);
     
     // Create left panel (subject tree)
     m_leftPanel = new QWidget();
@@ -155,6 +165,11 @@ void ConfigWidget::setupUI()
     m_bankDetailsLayout->addWidget(m_extractCountSpinBox, 5, 1);
     m_bankDetailsLayout->addWidget(m_extractPercentLabel, 5, 2);
     
+    // Add edit bank button
+    m_editBankButton = new QPushButton("编辑题库");
+    m_editBankButton->setObjectName("editBankButton");
+    m_bankDetailsLayout->addWidget(m_editBankButton, 6, 0, 1, 3);
+    
     // Statistics Group
     m_statisticsGroup = new QGroupBox("统计信息");
     m_statisticsLayout = new QGridLayout(m_statisticsGroup);
@@ -225,10 +240,22 @@ void ConfigWidget::setupUI()
     m_mainSplitter->setStretchFactor(0, 1);
     m_mainSplitter->setStretchFactor(1, 2);
     
+    // Main layout for config widget
+    QHBoxLayout *mainConfigLayout = new QHBoxLayout(mainConfigWidget);
+    mainConfigLayout->setContentsMargins(0, 0, 0, 0);
+    mainConfigLayout->addWidget(m_mainSplitter);
+    
+    // Create bank editor widget
+    m_bankEditorWidget = new BankEditorWidget();
+    
+    // Add widgets to stacked widget
+    m_stackedWidget->addWidget(mainConfigWidget);
+    m_stackedWidget->addWidget(m_bankEditorWidget);
+    
     // Main layout
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(m_mainSplitter);
+    mainLayout->addWidget(m_stackedWidget);
     
     setLayout(mainLayout);
 }
@@ -271,6 +298,12 @@ void ConfigWidget::setupConnections()
     
     connect(m_exportButton, &QPushButton::clicked,
             this, &ConfigWidget::onExportSubjectClicked);
+    
+    connect(m_editBankButton, &QPushButton::clicked,
+            this, &ConfigWidget::onEditBankClicked);
+    
+    connect(m_bankEditorWidget, &BankEditorWidget::backRequested,
+            this, &ConfigWidget::onBankEditorBack);
     
     connect(m_backButton, &QPushButton::clicked,
             this, &ConfigWidget::onBackClicked);
@@ -353,7 +386,18 @@ void ConfigWidget::applyStyles()
         "}"
         
         "#primaryButton:hover {"
-        "    background-color: #357ABD;"
+        "    background-color: #0056b3;"
+        "}"
+        
+        "#editBankButton {"
+        "    background-color: #17a2b8;"
+        "    color: white;"
+        "    border: none;"
+        "    font-weight: bold;"
+        "}"
+        
+        "#editBankButton:hover {"
+        "    background-color: #138496;"
         "}"
         
         "#secondaryButton {"
@@ -363,7 +407,7 @@ void ConfigWidget::applyStyles()
         "}"
         
         "#secondaryButton:hover {"
-        "    background-color: #5a6268;"
+        "    background-color: #545b62;"
         "}"
         
         "QLineEdit, QSpinBox {"
@@ -1480,6 +1524,40 @@ void ConfigWidget::onExportSubjectClicked()
     
     // TODO: Implement export functionality
     QMessageBox::information(this, "提示", "导出功能待实现");
+}
+
+void ConfigWidget::onEditBankClicked()
+{
+    if (m_currentSubject.isEmpty() || m_currentBank.isEmpty()) {
+        QMessageBox::warning(this, "编辑失败", "请先选择要编辑的题库。");
+        return;
+    }
+    
+    // Parse bank identifier to get bank type and index
+    QStringList parts = m_currentBank.split("_");
+    if (parts.size() < 2) {
+        QMessageBox::warning(this, "编辑失败", "题库标识符格式错误。");
+        return;
+    }
+    
+    QString bankType = parts[0];
+    m_currentBankIndex = parts[1].toInt();
+    m_currentBankType = bankType;
+    
+    // Set bank info in editor
+    m_bankEditorWidget->setBankInfo(m_currentSubject, bankType, m_currentBankIndex);
+    
+    // Switch to bank editor
+    m_stackedWidget->setCurrentWidget(m_bankEditorWidget);
+}
+
+void ConfigWidget::onBankEditorBack()
+{
+    // Switch back to main config view
+    m_stackedWidget->setCurrentWidget(m_stackedWidget->widget(0));
+    
+    // Refresh data to reflect any changes
+    refreshData();
 }
 
 void ConfigWidget::onBackClicked()

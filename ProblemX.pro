@@ -11,6 +11,7 @@ SOURCES += \
     widgets/configwidget.cpp \
     widgets/practicewidget.cpp \
     widgets/reviewwidget.cpp \
+    widgets/bankeditorwidget.cpp \
     core/questionmanager.cpp \
     core/configmanager.cpp \
     core/practicemanager.cpp \
@@ -27,6 +28,7 @@ HEADERS += \
     widgets/configwidget.h \
     widgets/practicewidget.h \
     widgets/reviewwidget.h \
+    widgets/bankeditorwidget.h \
     core/questionmanager.h \
     core/configmanager.h \
     core/practicemanager.h \

@@ -12,12 +12,13 @@ ProblemX 程序通过扫描指定的科目文件夹来加载题库。标准的�
 
 **说明:**
 
--   `<科目名称>`: 代表具体的学科，例如 `DataStructure`, `C++`, `OS` 等。文件夹名称可以自定义。
--   `<题型名称>`: 代表该科目下的题目类型，ProblemX目前支持以下固定的题型文件夹名称：
-    -   `Choice`: 用于存放选择题。
-    -   `FillBlank`: 用于存放填空题。
-    -   `TrueorFalse`: 用于存放判断题。
--   `<题库文件名>.json`: 具体的题库文件，文件名可以自定义，但必须是以 `.json` 结尾的JSON文件。
+- `<科目名称>`: 代表具体的学科，例如 `DataStructure`, `C++`, `OS` 等。文件夹名称可以自定义。
+- `<题型名称>`: 代表该科目下的题目类型，ProblemX目前支持以下固定的题型文件夹名称：
+  - `Choice`: 用于存放选择题。
+  - `MultiChoice`: 用于存放多选题。
+  - `FillBlank`: 用于存放填空题。
+  - `TrueorFalse`: 用于存放判断题。
+- `<题库文件名>.json`: 具体的题库文件，文件名可以自定义，但必须是以 `.json` 结尾的JSON文件。
 
 **示例:**
 
@@ -57,36 +58,37 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 
 每个 `.json` 题库文件都必须遵循以下格式：
 
-1.  **顶层结构**: JSON文件必须是一个**对象 (Object)**。
-2.  **数据容器**: 该顶层对象内必须包含一个名为 `"data"` 的**数组 (Array)**。这个数组的每个元素代表一道独立的题目。
+1. **顶层结构**: JSON文件必须是一个**对象 (Object)**。
+2. **数据容器**: 该顶层对象内必须包含一个名为 `"data"` 的**数组 (Array)**。这个数组的每个元素代表一道独立的题目。
 
 ### 2.1 题目 (Item) 通用字段
 
 数组 `"data"` 中的每一个题目对象都应包含以下基本字段：
 
--   `"type"` (String): **必需**。表示题目的类型。其值必须与该题库所在的 `<题型名称>` 文件夹名称**完全一致** (区分大小写)。
-    -   例如，在 `Choice` 文件夹下的题库，题目类型应为 `"Choice"`。
--   `"question"` (String): **必需**。表示题目的题干内容。可以使用 `\n` 来表示换行。
-    -   **Markdown支持**: 题目内容支持Markdown格式，包括：
-        - **粗体文本**: `**粗体**` 或 `__粗体__`
-        - *斜体文本*: `*斜体*` 或 `_斜体_`
-        - `代码`: `` `代码` ``
-        - 代码块: `` ```语言\n代码内容\n``` ``
-        - 列表: `- 项目` 或 `1. 项目`
-    -   **LaTeX数学公式支持**: 支持使用KaTeX引擎渲染数学公式：
-        - 行内公式: `$公式内容$`
-        - 块级公式: `$$公式内容$$`
-        - 示例: `$E = mc^2$` 或 `$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$`
--   `"image"` (String, 可选): 如果题目包含图片，此字段表示图片的**相对路径**。路径的基准点是**当前JSON题库文件所在的目录**。
-    -   例如，如果题库文件是 `Subject/DataStructure/Choice/Chapter1_Choice.json`，图片位于 `Subject/DataStructure/Choice/Asset/chapter1/image1.png`，则 `"image"` 字段应填入 `"Asset/chapter1/image1.png"`。
+- `"type"` (String): **必需**。表示题目的类型。其值必须与该题库所在的 `<题型名称>` 文件夹名称**完全一致** (区分大小写)。
+  - 例如，在 `Choice` 文件夹下的题库，题目类型应为 `"Choice"`。
+- `"question"` (String): **必需**。表示题目的题干内容。可以使用 `\n` 来表示换行。
+  - **Markdown支持**: 题目内容支持Markdown格式，包括：
+    - **粗体文本**: `**粗体**`
+    - *斜体文本*: `*斜体*`
+    - `代码`: `` `代码` ``
+    - 代码块: `` ```语言\n代码内容\n``` ``
+    - 列表: `- 项目` 或 `1. 项目`
+    - 支持更多markdown语法，包括表格等
+  - **LaTeX数学公式支持**: 支持使用KaTeX引擎渲染数学公式：
+    - 行内公式: `$公式内容$`
+    - 块级公式: `$$公式内容$$`
+    - 示例: `$E = mc^2$` 或 `$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$`
+- `"image"` (String, 可选): 如果题目包含图片，此字段表示图片的**相对路径**。路径的基准点是**当前JSON题库文件所在的目录**。
+  - 例如，如果题库文件是 `Subject/DataStructure/Choice/Chapter1_Choice.json`，图片位于 `Subject/DataStructure/Choice/Asset/chapter1/image1.png`，则 `"image"` 字段应填入 `"Asset/chapter1/image1.png"`。
 
 ### 2.2 选择题 (Choice) 格式
 
 当 `"type": "Choice"` 时，题目对象还需要包含以下字段：
 
--   `"choices"` (Array of Strings): **必需**。一个包含四个字符串元素的数组，**严格按照A、B、C、D的顺序**排列，每个字符串代表一个选项的描述。
-    -   选项文本可以包含换行符 `\n`。
--   `"answer"` (String): **必需**。表示该选择题的正确答案，其值为选项的字母标识（例如：`"A"`, `"B"`, `"C"`, `"D"`）。
+- `"choices"` (Array of Strings): **必需**。一个包含四个字符串元素的数组，**严格按照A、B、C、D的顺序**排列，每个字符串代表一个选项的描述。
+  - 选项文本可以包含换行符 `\n`。
+- `"answer"` (String): **必需**。表示该选择题的正确答案，其值为选项的字母标识（例如：`"A"`, `"B"`, `"C"`, `"D"`）。
 
 **选择题示例:**
 
@@ -121,13 +123,53 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 }
 ```
 
-### 2.3 判断题 (TrueorFalse) 格式
+### 2.3 多选题 (MultipleChoice) 格式
+
+当 `"type": "MultipleChoice"` 时，题目对象还需要包含以下字段：
+
+- `"choices"` (Array of Strings): **必需**。一个包含四个字符串元素的数组，**严格按照A、B、C、D的顺序**排列，每个字符串代表一个选项的描述。
+  - 选项文本可以包含换行符 `\n`。
+- `"answer"` (String): **必需**。表示该多选题的正确答案，其值为选项的字母标识组合，**多个答案之间用逗号分隔**（例如：`"A,B,D"`、`"A,C"`、`"B,C,D"`）。
+
+**多选题示例:**
+
+```json
+{
+    "type": "MultipleChoice",
+    "question": "下列关于数据结构的说法正确的是（）。",
+    "choices": [
+        "A. 栈是一种先进先出的数据结构",
+        "B. 队列是一种先进先出的数据结构",
+        "C. 链表可以随机访问元素",
+        "D. 数组支持动态扩容"
+    ],
+    "answer": "B"
+}
+```
+
+**包含多个正确答案的多选题示例:**
+
+```json
+{
+    "type": "MultipleChoice",
+    "question": "以下哪些是面向对象编程的特征？",
+    "choices": [
+        "A. 封装性",
+        "B. 继承性",
+        "C. 结构化",
+        "D. 多态性"
+    ],
+    "answer": "A,B,D"
+}
+```
+
+### 2.4 判断题 (TrueorFalse) 格式
 
 当 `"type": "TrueorFalse"` 时，题目对象还需要包含以下字段：
 
--   `"answer"` (String): **必需**。表示该判断题的正确答案。其值必须是：
-    -   `"T"` (代表正确/True)
-    -   `"F"` (代表错误/False)
+- `"answer"` (String): **必需**。表示该判断题的正确答案。其值必须是：
+  - `"T"` (代表正确/True)
+  - `"F"` (代表错误/False)
 
 **判断题示例:**
 
@@ -139,12 +181,12 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 }
 ```
 
-### 2.4 填空题 (FillBlank) 格式
+### 2.5 填空题 (FillBlank) 格式
 
 当 `"type": "FillBlank"` 时，题目对象还需要包含以下字段：
 
--   `"BlankNum"` (Integer): **必需**。表示该填空题包含的**填空数量**。
--   `"answer"` (Array of Strings): **必需**。一个字符串数组，其元素数量必须与 `"BlankNum"` 的值**一致**。数组中的每个字符串**按顺序**对应题目中的每一个空的正确答案。
+- `"BlankNum"` (Integer): **必需**。表示该填空题包含的**填空数量**。
+- `"answer"` (Array of Strings): **必需**。一个字符串数组，其元素数量必须与 `"BlankNum"` 的值**一致**。数组中的每个字符串**按顺序**对应题目中的每一个空的正确答案。
 
 **填空题示例:**
 
@@ -276,4 +318,3 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 ---
 
 请严格按照本指南配置您的题库，以确保ProblemX能够顺利加载和运行。如有疑问，请参考项目中的示例题库或联系开发者。
-

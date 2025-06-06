@@ -17,6 +17,7 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QTextEdit>
+#include <QStackedWidget>
 #include <QFileDialog>
 #include <QMessageBox>
 #include "../utils/bankscanner.h"
@@ -41,6 +42,7 @@ QT_END_NAMESPACE
 
 class ConfigManager;
 struct QuestionBank;
+class BankEditorWidget;
 
 class ConfigWidget : public QWidget
 {
@@ -69,6 +71,8 @@ private slots:
     void onResetClicked();
     void onImportSubjectClicked();
     void onExportSubjectClicked();
+    void onEditBankClicked();
+    void onBankEditorBack();
     void onBackClicked();
 
 signals:
@@ -135,6 +139,7 @@ private:
     QLabel *m_extractCountLabel;
     QSpinBox *m_extractCountSpinBox;
     QLabel *m_extractPercentLabel;
+    QPushButton *m_editBankButton;
     
     // Statistics Group
     QGroupBox *m_statisticsGroup;
@@ -160,8 +165,14 @@ private:
     // Data
     ConfigManager *m_configManager;
     bool m_isLoading;
+    
+    // Bank editor
+    QStackedWidget *m_stackedWidget;
+    BankEditorWidget *m_bankEditorWidget;
     QString m_currentSubject;
     QString m_currentBank;
+    QString m_currentBankType;
+    int m_currentBankIndex;
 };
 
 #endif // CONFIGWIDGET_H
