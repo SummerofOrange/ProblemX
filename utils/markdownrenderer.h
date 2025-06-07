@@ -35,8 +35,11 @@ private:
     void setupWebEngine();
     void createHtmlTemplate();
     QString convertMarkdownToHtml(const QString &markdown);
+    QString protectSpecialContent(const QString &html);
+    QString restoreAndProcessProtectedContent(const QString &html);
     QString processCodeBlocks(const QString &html);
     QString processLatexBlocks(const QString &html);
+    QString escapeHtmlSpecialChars(const QString &html);
     QString processParagraphs(const QString &html);
     QString processLists(const QString &html);
     QString processTables(const QString &html);
@@ -52,6 +55,10 @@ private:
     bool m_autoResize;
     int m_maxAutoHeight;
     int m_parentMaxHeight;
+    
+    // 用于保护特殊内容的成员变量
+    QStringList m_protectedBlocks;
+    QStringList m_placeholders;
 };
 
 #endif // MARKDOWNRENDERER_H

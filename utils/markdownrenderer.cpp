@@ -80,8 +80,11 @@ void MarkdownRenderer::createHtmlTemplate()
                 options.delimiters.push({left: '$$', right: '$$', display: true});
                 options.delimiters.push({left: '$', right: '$', display: false});
                 options.delimiters.push({left: '\[', right: '\]', display: true});
-                options.delimiters.push({left: '\(', right: '\)', display: false});
+                // 移除 \( 和 \) 分隔符，避免普通括号被误渲染为数学公式
+                // options.delimiters.push({left: '\(', right: '\)', display: false});
                 options.throwOnError = false;
+                // 设置trust为false，确保<和>被视为文本而不是HTML标签
+                options.trust = false;
                 renderMathInElement(document.body, options);
             } else {
                 console.error('renderMathInElement is not defined. KaTeX auto-render may not be loaded.');
@@ -97,13 +100,14 @@ QString MarkdownRenderer::convertMarkdownToHtml(const QString &markdown)
 {
     QString html = markdown;
     
-    // 直接接处理代码不使用占位
-    html = processCodeBlocks(html);
+    // 使用统一的保护机制处理所有需要避免HTML转义的内容
+    html = protectSpecialContent(html);
     
-    // 直接处理LaTeX公式，不使用占位符
+    // HTML特殊字符转义（在保护特殊内容之后进行）
+    html = escapeHtmlSpecialChars(html);
     
-    // 直接处理LaTeX公式，不使用占位符
-    html = processLatexBlocks(html);
+    // 恢复并处理被保护的内容
+    html = restoreAndProcessProtectedContent(html);
     
     // 处理多行空格：将多个连续空行合并为一个
     html.replace(QRegularExpression("\n\s*\n\s*\n+"), "\n\n");
@@ -140,10 +144,6 @@ QString MarkdownRenderer::convertMarkdownToHtml(const QString &markdown)
     
     // 图片 ![alt](src)
     html.replace(QRegularExpression("!\\[([^\\]]*)\\]\\(([^\\)]+)\\)"), "<img src=\"\\2\" alt=\"\\1\" />");
-    
-    // 引用块
-    QRegularExpression quoteRegex("^> (.+)$", QRegularExpression::MultilineOption);
-    html.replace(quoteRegex, "<blockquote>\\1</blockquote>");
     
     // 水平分割线
     html.replace(QRegularExpression("^---+$", QRegularExpression::MultilineOption), "<hr>");
@@ -211,22 +211,51 @@ QString MarkdownRenderer::processCodeBlocks(const QString &html)
 QString MarkdownRenderer::processLatexBlocks(const QString &html)
 {
     QString result = html;
+    
+    // 先处理双美元符号的LaTeX公式
     QRegularExpression latexBlockRegex("\\$\\$([^$]*?)\\$\\$", QRegularExpression::DotMatchesEverythingOption);
+    QList<QRegularExpressionMatch> blockMatches;
+    QRegularExpressionMatchIterator blockIterator = latexBlockRegex.globalMatch(result);
+    while (blockIterator.hasNext()) {
+        blockMatches.append(blockIterator.next());
+    }
     
     // 从后往前替换，避免位置偏移问题
-    QList<QRegularExpressionMatch> matches;
-    QRegularExpressionMatchIterator iterator = latexBlockRegex.globalMatch(result);
-    while (iterator.hasNext()) {
-        matches.append(iterator.next());
-    }
-    
-    for (int i = matches.size() - 1; i >= 0; --i) {
-        QRegularExpressionMatch match = matches[i];
+    for (int i = blockMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = blockMatches[i];
         QString latexContent = match.captured(1).trimmed();
         QString latexBlock = QString("$$%1$$").arg(latexContent);
-        
         result.replace(match.capturedStart(), match.capturedLength(), latexBlock);
     }
+    
+    // 再处理单美元符号的LaTeX公式
+    QRegularExpression singleLatexRegex("\\$([^$\\n]*?)\\$");
+    QList<QRegularExpressionMatch> singleMatches;
+    QRegularExpressionMatchIterator singleIterator = singleLatexRegex.globalMatch(result);
+    while (singleIterator.hasNext()) {
+        singleMatches.append(singleIterator.next());
+    }
+    
+    // 从后往前替换，避免位置偏移问题
+    for (int i = singleMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = singleMatches[i];
+        QString latexContent = match.captured(1);
+        QString latexBlock = QString("$%1$").arg(latexContent);
+        result.replace(match.capturedStart(), match.capturedLength(), latexBlock);
+    }
+    
+    return result;
+}
+
+QString MarkdownRenderer::escapeHtmlSpecialChars(const QString &html)
+{
+    QString result = html;
+    
+    // 转义HTML特殊字符
+    result.replace("&", "&amp;");  // 必须首先处理&，避免重复转义
+    result.replace("<", "&lt;");
+    result.replace(">", "&gt;");
+    result.replace('"', "&quot;");
     
     return result;
 }
@@ -323,13 +352,14 @@ QString MarkdownRenderer::processLists(const QString &html)
     QStringList processedLines;
     QStack<QString> listStack; // 存储当前嵌套的列表类型
     QStack<int> indentStack;   // 存储当前嵌套的缩进级别
+    QStack<int> olStartStack;  // 存储有序列表的起始编号
     
     for (const QString &line : lines) {
         QString trimmedLine = line.trimmed();
         
         // 检查是否是列表项
         QRegularExpression ulRegex("^[*+-]\\s+(.+)$");
-        QRegularExpression olRegex("^\\d+\\.\\s+(.+)$");
+        QRegularExpression olRegex("^(\\d+)\\.\\s+(.+)$");
         QRegularExpressionMatch ulMatch = ulRegex.match(trimmedLine);
         QRegularExpressionMatch olMatch = olRegex.match(trimmedLine);
         
@@ -337,13 +367,17 @@ QString MarkdownRenderer::processLists(const QString &html)
             // 计算当前行的缩进级别
             int currentIndent = line.length() - line.trimmed().length();
             QString listType = ulMatch.hasMatch() ? "ul" : "ol";
-            QString content = ulMatch.hasMatch() ? ulMatch.captured(1) : olMatch.captured(1);
+            QString content = ulMatch.hasMatch() ? ulMatch.captured(1) : olMatch.captured(2);
+            int olNumber = olMatch.hasMatch() ? olMatch.captured(1).toInt() : 1;
             
             // 处理嵌套逻辑
             while (!indentStack.isEmpty() && currentIndent <= indentStack.top()) {
                 QString closingTag = "</" + listStack.pop() + ">";
                 processedLines.append(closingTag);
                 indentStack.pop();
+                if (!olStartStack.isEmpty()) {
+                    olStartStack.pop();
+                }
             }
             
             // 如果是新的嵌套级别或不同类型的列表
@@ -354,9 +388,19 @@ QString MarkdownRenderer::processLists(const QString &html)
                     QString closingTag = "</" + listStack.pop() + ">";
                     processedLines.append(closingTag);
                     indentStack.pop();
+                    if (!olStartStack.isEmpty()) {
+                        olStartStack.pop();
+                    }
                 }
                 
-                QString openingTag = "<" + listType + ">";
+                QString openingTag;
+                if (listType == "ol") {
+                    // 对于有序列表，添加start属性
+                    openingTag = QString("<ol start=\"%1\">").arg(olNumber);
+                    olStartStack.push(olNumber);
+                } else {
+                    openingTag = "<ul>";
+                }
                 processedLines.append(openingTag);
                 listStack.push(listType);
                 indentStack.push(currentIndent);
@@ -369,6 +413,9 @@ QString MarkdownRenderer::processLists(const QString &html)
                 QString closingTag = "</" + listStack.pop() + ">";
                 processedLines.append(closingTag);
                 indentStack.pop();
+                if (!olStartStack.isEmpty()) {
+                    olStartStack.pop();
+                }
             }
             
             if (!trimmedLine.isEmpty()) {
@@ -382,6 +429,9 @@ QString MarkdownRenderer::processLists(const QString &html)
         QString closingTag = "</" + listStack.pop() + ">";
         processedLines.append(closingTag);
         indentStack.pop();
+        if (!olStartStack.isEmpty()) {
+            olStartStack.pop();
+        }
     }
     
     return processedLines.join('\n');
@@ -580,8 +630,9 @@ QString MarkdownRenderer::getCustomCss() const
          }
          
          ol {
+             margin: 10px 0;
+             padding-left: 30px;
              list-style-type: decimal;
-             counter-reset: item;
          }
          
          ol ol {
@@ -594,7 +645,7 @@ QString MarkdownRenderer::getCustomCss() const
          
          ol > li {
              display: list-item;
-             list-style-type: decimal;
+             margin-bottom: 0.5em;
          }
         
         a {
@@ -747,4 +798,145 @@ void MarkdownRenderer::adjustSizeToContent()
             }
         }
     );
+}
+
+QString MarkdownRenderer::protectSpecialContent(const QString &html)
+{
+    QString result = html;
+    
+    // 存储需要保护的内容
+    QStringList protectedBlocks;
+    QStringList placeholders;
+    
+    // 保护代码块 - 使用原始markdown语法
+    QRegularExpression codeBlockRegex("```([^`]*?)```", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpressionMatchIterator codeIterator = codeBlockRegex.globalMatch(result);
+    QList<QRegularExpressionMatch> codeMatches;
+    while (codeIterator.hasNext()) {
+        codeMatches.append(codeIterator.next());
+    }
+    // 从后往前替换，避免位置偏移
+    for (int i = codeMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = codeMatches[i];
+        QString placeholder = QString("__PROTECTED_CODE_%1__").arg(protectedBlocks.size());
+        protectedBlocks.append(match.captured(0));
+        placeholders.append(placeholder);
+        result.replace(match.capturedStart(), match.capturedLength(), placeholder);
+    }
+    
+    // 保护行内代码
+    QRegularExpression inlineCodeRegex("`([^`]+)`");
+    QRegularExpressionMatchIterator inlineCodeIterator = inlineCodeRegex.globalMatch(result);
+    QList<QRegularExpressionMatch> inlineCodeMatches;
+    while (inlineCodeIterator.hasNext()) {
+        inlineCodeMatches.append(inlineCodeIterator.next());
+    }
+    // 从后往前替换，避免位置偏移
+    for (int i = inlineCodeMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = inlineCodeMatches[i];
+        QString placeholder = QString("__PROTECTED_INLINE_CODE_%1__").arg(protectedBlocks.size());
+        protectedBlocks.append(match.captured(0));
+        placeholders.append(placeholder);
+        result.replace(match.capturedStart(), match.capturedLength(), placeholder);
+    }
+    
+    // 保护双美元符号LaTeX公式
+    QRegularExpression latexBlockRegex("\\$\\$([^$]*?)\\$\\$", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpressionMatchIterator latexBlockIterator = latexBlockRegex.globalMatch(result);
+    QList<QRegularExpressionMatch> latexBlockMatches;
+    while (latexBlockIterator.hasNext()) {
+        latexBlockMatches.append(latexBlockIterator.next());
+    }
+    // 从后往前替换，避免位置偏移
+    for (int i = latexBlockMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = latexBlockMatches[i];
+        // 获取原始内容并进行特殊处理
+        QString latexContent = match.captured(0);
+        // 使用HTML实体编码替换<和>，确保它们在LaTeX处理时被正确解释
+        latexContent.replace("<", "&lt;");
+        latexContent.replace(">", "&gt;");
+        QString placeholder = QString("__PROTECTED_LATEX_BLOCK_%1__").arg(protectedBlocks.size());
+        protectedBlocks.append(latexContent);
+        placeholders.append(placeholder);
+        result.replace(match.capturedStart(), match.capturedLength(), placeholder);
+    }
+    
+    // 保护单美元符号LaTeX公式
+    QRegularExpression latexInlineRegex("\\$([^$]+?)\\$");
+    QRegularExpressionMatchIterator latexInlineIterator = latexInlineRegex.globalMatch(result);
+    QList<QRegularExpressionMatch> latexInlineMatches;
+    while (latexInlineIterator.hasNext()) {
+        latexInlineMatches.append(latexInlineIterator.next());
+    }
+    // 从后往前替换，避免位置偏移
+    for (int i = latexInlineMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = latexInlineMatches[i];
+        // 获取原始内容并进行特殊处理
+        QString latexContent = match.captured(0);
+        // 使用HTML实体编码替换<和>，确保它们在LaTeX处理时被正确解释
+        latexContent.replace("<", "&lt;");
+        latexContent.replace(">", "&gt;");
+        QString placeholder = QString("__PROTECTED_LATEX_INLINE_%1__").arg(protectedBlocks.size());
+        protectedBlocks.append(latexContent);
+        placeholders.append(placeholder);
+        result.replace(match.capturedStart(), match.capturedLength(), placeholder);
+    }
+    
+    // 保护引用块
+    QRegularExpression quoteRegex("^> (.+)$", QRegularExpression::MultilineOption);
+    QRegularExpressionMatchIterator quoteIterator = quoteRegex.globalMatch(result);
+    QList<QRegularExpressionMatch> quoteMatches;
+    while (quoteIterator.hasNext()) {
+        quoteMatches.append(quoteIterator.next());
+    }
+    // 从后往前替换，避免位置偏移
+    for (int i = quoteMatches.size() - 1; i >= 0; --i) {
+        QRegularExpressionMatch match = quoteMatches[i];
+        QString placeholder = QString("__PROTECTED_QUOTE_%1__").arg(protectedBlocks.size());
+        protectedBlocks.append(match.captured(0));
+        placeholders.append(placeholder);
+        result.replace(match.capturedStart(), match.capturedLength(), placeholder);
+    }
+    
+    // 将保护信息存储到成员变量中，供后续恢复使用
+    m_protectedBlocks = protectedBlocks;
+    m_placeholders = placeholders;
+    
+    return result;
+}
+
+QString MarkdownRenderer::restoreAndProcessProtectedContent(const QString &html)
+{
+    QString result = html;
+    
+    // 恢复并处理被保护的内容
+    for (int i = 0; i < m_protectedBlocks.size(); ++i) {
+        QString content = m_protectedBlocks[i];
+        QString placeholder = m_placeholders[i];
+        
+        if (placeholder.startsWith("__PROTECTED_CODE_")) {
+            // 处理代码块
+            content = processCodeBlocks(content);
+        } else if (placeholder.startsWith("__PROTECTED_INLINE_CODE_")) {
+            // 处理行内代码
+            QRegularExpression inlineCodeRegex("`([^`]+)`");
+            content.replace(inlineCodeRegex, "<code>\\1</code>");
+        } else if (placeholder.startsWith("__PROTECTED_LATEX_BLOCK_")) {
+            // 处理LaTeX块公式 - 直接使用原始内容，不需要额外处理
+        } else if (placeholder.startsWith("__PROTECTED_LATEX_INLINE_")) {
+            // 处理LaTeX行内公式 - 直接使用原始内容，不需要额外处理
+        } else if (placeholder.startsWith("__PROTECTED_QUOTE_")) {
+            // 处理引用块
+            QRegularExpression quoteRegex("^> (.+)$", QRegularExpression::MultilineOption);
+            content.replace(quoteRegex, "<blockquote>\\1</blockquote>");
+        }
+        
+        result.replace(placeholder, content);
+    }
+    
+    // 清理保护信息
+    m_protectedBlocks.clear();
+    m_placeholders.clear();
+    
+    return result;
 }
