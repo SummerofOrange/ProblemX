@@ -2,7 +2,7 @@
 
 ## 1. 概述
 
-本工具 (`convert_PTA_to_problemx.py`) 旨在帮助用户将从 **PTA (Programming Teaching Assistant)** 平台导出的HTML格式题库文件，转换为 **ProblemX** 刷题系统所支持的JSON格式。通过此工具，您可以方便地将PTA的题目资源导入到ProblemX中进行练习和管理。
+本工具 (`convert_PTA_to_problemx.py`) 旨在帮助用户将从 **PTA (PintiA)** 平台导出的HTML格式题库文件，转换为 **ProblemX** 刷题系统所支持的JSON格式。通过此工具，您可以方便地将PTA的题目资源导入到ProblemX中进行练习和管理。
 
 ## 2. 支持的题型
 
@@ -57,6 +57,6 @@ python convert_PTA_to_problemx.py pta_export.html -type FillBlank -o FillBlankQu
 
 ## 6. 重要注意事项
 
-1.  **HTML文件编码**: 请确保您从PTA导出的HTML文件采用 **UTF-8** 编码，以避免乱码问题。
-2.  **文件路径**: 强烈建议在命令行中使用**绝对路径**指定输入和输出文件/目录，以避免因相对路径引发的错误。
-3.  **HTML结构依赖**: 转换工具的解析效果高度依赖于PTA导出HTML的结构。如果PTA的HTML结构发生较大变化，可能需要更新转换脚本的解析逻辑。
+1. **HTML文件编码**: 请确保您从PTA导出的HTML文件采用 **UTF-8** 编码，以避免乱码问题。
+2. **文件路径**: 强烈建议在命令行中使用**绝对路径**指定输入和输出文件/目录，以避免因相对路径引发的错误。
+3. **HTML结构依赖**: 转换工具的解析效果高度依赖于PTA导出HTML的结构。如果PTA的HTML结构发生较大变化，可能需要更新转换脚本的解析逻辑。
