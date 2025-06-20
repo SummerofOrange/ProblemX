@@ -99,6 +99,17 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 
 详细使用说明请参考 [雨课堂转换工具说明](README_Yuketang_Converter.md)。
 
+### 从PTA生成可使用的题库
+
+1. 从PTA平台下载 HTML 格式的题库文件
+2. 使用内置的转换工具转换为 ProblemX 格式：
+
+```bash
+python convert_PTA_to_problemx.py pta_export.html -type <题目类型> -o <输出文件名>
+```
+
+详细使用说明请参考 [PTA转换工具说明](README_PTA_Converter.md)。
+
 ## 项目结构
 
 ```
@@ -122,6 +133,7 @@ python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -
 │   └── bankeditorwidget.* # 题库编辑界面
 ├── Subject/               # 题库目录
 ├── convert_Yuketang_to_problemx.py  # 雨课堂转换工具
+├── convert_PTA_to_problemx.py  # PTA 转换工具
 ├── main.cpp               # 程序入口
 ├── mainwindow.*           # 主窗口
 └── ProblemX.pro           # Qt项目文件
