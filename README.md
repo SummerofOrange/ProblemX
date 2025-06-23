@@ -110,6 +110,18 @@ python convert_PTA_to_problemx.py pta_export.html -type <题目类型> -o <输�
 
 详细使用说明请参考 [PTA转换工具说明](README_PTA_Converter.md)。
 
+
+### 从学习通生成可使用的题库
+
+1. 从学习通平台下载 HTML 格式的题库文件
+2. 使用内置的转换工具转换为 ProblemX 格式：
+
+```bash
+python extract_xuexitong_questions.py <input_html_file> --type <题目类型> [-o <输出文件名.json>]
+```
+
+详细使用说明请参考 [学习通转换工具说明](README_Xuexitong_Converter.md.md)。
+
 ## 项目结构
 
 ```
