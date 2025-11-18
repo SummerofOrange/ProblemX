@@ -33,10 +33,10 @@ def extract_true_false_questions(soup: BeautifulSoup) -> list:
     logger.info(f"找到 {len(question_containers)} 个潜在的判断题容器。")
 
     for container in question_containers:
-        question_text_element = container.select_one(QUESTION_TEXT_SELECTOR)
-        if not question_text_element:
+        question_html_element = container.select_one("div.rendered-markdown")
+        if not question_html_element:
             continue
-        question_text = question_text_element.get_text(strip=True)
+        question_text = question_html_element.get_text(strip=True, separator='\n')
 
         correct_answer = None
         choices_found = []
@@ -132,10 +132,10 @@ def extract_choice_questions(soup: BeautifulSoup) -> list:
     logger.info(f"找到 {len(question_containers)} 个潜在的选择题容器。")
 
     for container in question_containers:
-        question_text_element = container.select_one(QUESTION_TEXT_SELECTOR)
-        if not question_text_element:
+        question_html_element = container.select_one("div.markdownBlock_tErSz > div.rendered-markdown")
+        if not question_html_element:
             continue
-        question_text = question_text_element.get_text(strip=True).replace('\n', ' ')
+        question_text = question_html_element.get_text(strip=True, separator='\n')
 
         choices = []
         correct_answer = None
@@ -143,20 +143,17 @@ def extract_choice_questions(soup: BeautifulSoup) -> list:
         option_labels = container.select('label.w-full')
         for label in option_labels:
             input_elem = label.select_one(RADIO_INPUT_SELECTOR)
-            # 提取选项标识 (A, B, C, D)
-            option_tag_elem = label.select_one('span:not([class])')
-            # 提取选项文本
-            option_text_elem = label.select_one('div.rendered-markdown p')
+            option_tag_elem = label.find('span')
+            option_text_block = label.select_one('div.rendered-markdown')
 
-            if input_elem and option_tag_elem and option_text_elem:
-                option_tag = option_tag_elem.get_text(strip=True).replace('.', '')
-                option_text = option_text_elem.get_text(strip=True)
-                
+            if input_elem and option_tag_elem and option_text_block:
+                option_tag = option_tag_elem.get_text(strip=True).strip().replace('.', '')
+                option_text = option_text_block.get_text(strip=True, separator='\n')
                 choices.append(f"{option_tag}.{option_text}")
                 if input_elem.has_attr('checked'):
                     correct_answer = option_tag
 
-        if correct_answer and choices:
+        if choices:
             question_data = {
                 "type": "Choice",
                 "question": question_text,
