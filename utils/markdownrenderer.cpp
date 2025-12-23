@@ -79,7 +79,7 @@ void MarkdownRenderer::createHtmlTemplate()
                 options.delimiters = [];
                 options.delimiters.push({left: '$$', right: '$$', display: true});
                 options.delimiters.push({left: '$', right: '$', display: false});
-                options.delimiters.push({left: '\[', right: '\]', display: true});
+                // options.delimiters.push({left: '\[', right: '\]', display: true});
                 // 移除 \( 和 \) 分隔符，避免普通括号被误渲染为数学公式
                 // options.delimiters.push({left: '\(', right: '\)', display: false});
                 options.throwOnError = false;
