@@ -89,10 +89,7 @@ WrongAnswerItem WrongAnswerItem::fromJson(const QJsonObject &json)
 
 void WrongAnswerItem::generateId()
 {
-    // 基于题目内容和时间戳生成唯一ID
-    QString content = subject + questionType + questionText + timestamp.toString();
-    QByteArray hash = QCryptographicHash::hash(content.toUtf8(), QCryptographicHash::Md5);
-    id = hash.toHex().left(16); // 使用前16位作为ID
+    id = QUuid::createUuid().toString(QUuid::WithoutBraces).remove('-').left(16);
 }
 
 WrongAnswerItem WrongAnswerItem::fromQuestion(const Question &question, const QString &subject,
@@ -248,12 +245,6 @@ QString WrongAnswerSet::getDefaultFilePath() const
 
 void WrongAnswerSet::addWrongAnswer(const WrongAnswerItem &item)
 {
-    // 检查是否重复
-    if (isDuplicate(item)) {
-        qDebug() << "Duplicate wrong answer item, skipping";
-        return;
-    }
-    
     WrongAnswerItem newItem = item;
     if (newItem.id.isEmpty()) {
         newItem.generateId();
@@ -266,24 +257,20 @@ void WrongAnswerSet::addWrongAnswer(const WrongAnswerItem &item)
 
 void WrongAnswerSet::addWrongAnswers(const QVector<WrongAnswerItem> &items)
 {
-    int addedCount = 0;
     for (const WrongAnswerItem &item : items) {
-        if (!isDuplicate(item)) {
-            WrongAnswerItem newItem = item;
-            if (newItem.id.isEmpty()) {
-                newItem.generateId();
-            }
-            m_wrongAnswers.append(newItem);
-            emit wrongAnswerAdded(newItem);
-            addedCount++;
+        WrongAnswerItem newItem = item;
+        if (newItem.id.isEmpty()) {
+            newItem.generateId();
         }
+        m_wrongAnswers.append(newItem);
+        emit wrongAnswerAdded(newItem);
     }
     
-    if (addedCount > 0) {
+    if (!items.isEmpty()) {
         emit dataChanged();
     }
     
-    qDebug() << "Added" << addedCount << "wrong answers, skipped" << (items.size() - addedCount) << "duplicates";
+    qDebug() << "Added" << items.size() << "wrong answers";
 }
 
 bool WrongAnswerSet::removeWrongAnswer(const QString &id)
@@ -560,10 +547,33 @@ QString WrongAnswerSet::generateUniqueId() const
 
 bool WrongAnswerSet::isDuplicate(const WrongAnswerItem &item) const
 {
+    auto buildKey = [](const WrongAnswerItem &it) -> QString {
+        QStringList normalizedChoices = it.choices;
+        for (QString &choice : normalizedChoices) {
+            choice = choice.trimmed();
+        }
+
+        QStringList normalizedCorrectAnswers = it.correctAnswers;
+        for (QString &ans : normalizedCorrectAnswers) {
+            ans = ans.trimmed();
+        }
+        normalizedCorrectAnswers.removeAll(QString());
+        normalizedCorrectAnswers.sort();
+
+        QString normalizedCorrectAnswer = it.correctAnswer.trimmed();
+
+        return it.subject + "\n" +
+               it.questionType + "\n" +
+               it.questionText + "\n" +
+               it.imagePath + "\n" +
+               normalizedChoices.join("\n") + "\n" +
+               normalizedCorrectAnswer + "\n" +
+               normalizedCorrectAnswers.join("|");
+    };
+
+    const QString key = buildKey(item);
     for (const WrongAnswerItem &existing : m_wrongAnswers) {
-        if (existing.subject == item.subject &&
-            existing.questionText == item.questionText &&
-            existing.questionType == item.questionType) {
+        if (buildKey(existing) == key) {
             return true;
         }
     }

@@ -33,6 +33,7 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QDebug>
+#include <QSet>
 
 PracticeWidget::PracticeWidget(QWidget *parent)
     : QWidget(parent)
@@ -1513,11 +1514,16 @@ void PracticeWidget::restoreUserAnswer()
         case QuestionType::Choice: {
             QString userAnswer = m_practiceManager->getQuestionManager()->getUserAnswer(m_currentQuestionIndex);
             if (!userAnswer.isEmpty()) {
-                // 恢复选择题答案
-                for (int i = 0; i < m_choiceButtons.size(); ++i) {
-                    if (m_choiceButtons[i]->text().startsWith(userAnswer + ".")) {
-                        m_choiceButtons[i]->setChecked(true);
-                        break;
+                QString normalized = userAnswer.trimmed().toUpper();
+                if (normalized.contains('.')) {
+                    normalized = normalized.section('.', 0, 0).trimmed();
+                }
+                if (!normalized.isEmpty()) {
+                    const QString option = normalized.left(1);
+                    const QStringList labels = {"A", "B", "C", "D", "E", "F", "G", "H"};
+                    const int index = labels.indexOf(option);
+                    if (index >= 0 && index < m_choiceButtons.size()) {
+                        m_choiceButtons[index]->setChecked(true);
                     }
                 }
             }
@@ -1536,23 +1542,35 @@ void PracticeWidget::restoreUserAnswer()
             break;
         }
         case QuestionType::MultipleChoice: {
-            QStringList userAnswers = m_practiceManager->getQuestionManager()->getUserMultiAnswers(m_currentQuestionIndex);
-            if (!userAnswers.isEmpty()) {
-                // 恢复多选答案
-                for (int i = 0; i < m_multiChoiceBoxes.size(); ++i) {
-                    QString optionText = m_multiChoiceBoxes[i]->text();
-                    if (!optionText.isEmpty()) {
-                        QString option = optionText.left(1); // 获取选项字母
-                        m_multiChoiceBoxes[i]->setChecked(userAnswers.contains(option));
+            QString userAnswer = m_practiceManager->getQuestionManager()->getUserAnswer(m_currentQuestionIndex);
+            if (!userAnswer.isEmpty()) {
+                QString normalized = userAnswer.trimmed().toUpper();
+                QSet<QString> selected;
+                for (QChar ch : normalized) {
+                    if (ch >= 'A' && ch <= 'H') {
+                        selected.insert(QString(ch));
                     }
+                }
+
+                const QStringList labels = {"A", "B", "C", "D", "E", "F", "G", "H"};
+                for (int i = 0; i < m_multiChoiceBoxes.size() && i < labels.size(); ++i) {
+                    m_multiChoiceBoxes[i]->setChecked(selected.contains(labels[i]));
                 }
             }
             break;
         }
         case QuestionType::FillBlank: {
-            QString userAnswer = m_practiceManager->getQuestionManager()->getUserAnswer(m_currentQuestionIndex);
-            if (!userAnswer.isEmpty() && !m_fillBlankEdits.isEmpty()) {
-                m_fillBlankEdits[0]->setText(userAnswer);
+            const QStringList userAnswers = m_practiceManager->getQuestionManager()->getUserAnswers(m_currentQuestionIndex);
+            if (!userAnswers.isEmpty() && !m_fillBlankEdits.isEmpty()) {
+                const int count = qMin(m_fillBlankEdits.size(), userAnswers.size());
+                for (int i = 0; i < count; ++i) {
+                    m_fillBlankEdits[i]->setText(userAnswers[i]);
+                }
+            } else {
+                const QString userAnswer = m_practiceManager->getQuestionManager()->getUserAnswer(m_currentQuestionIndex);
+                if (!userAnswer.isEmpty() && !m_fillBlankEdits.isEmpty()) {
+                    m_fillBlankEdits[0]->setText(userAnswer);
+                }
             }
             break;
         }

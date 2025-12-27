@@ -115,7 +115,7 @@ public:
     // 新的错题集合管理
     void setWrongAnswerSet(WrongAnswerSet *wrongAnswerSet);
     bool askUserToImportWrongAnswers();
-    void importWrongAnswersToSet();
+    int importWrongAnswersToSet();
     
     // Checkpoint management
     void saveCheckpoint(ConfigManager *configManager);

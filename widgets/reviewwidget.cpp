@@ -1358,14 +1358,28 @@ void ReviewWidget::onWrongAnswersImportRequested(const QList<Question> &wrongQue
     if (reply == QMessageBox::Yes && m_practiceManager) {
         qDebug() << "[DEBUG] onWrongAnswersImportRequested: Calling importWrongAnswersToSet";
         // 调用PracticeManager的导入方法
-        m_practiceManager->importWrongAnswersToSet();
-        
-        QMessageBox::information(
-            this,
-            "导入成功",
-            QString("已成功导入 %1 道错题到错题系统中。")
-                .arg(wrongQuestions.size())
-        );
+        const int addedCount = m_practiceManager->importWrongAnswersToSet();
+        if (addedCount < 0) {
+            QMessageBox::warning(this, "导入失败", "错题导入或保存失败，请稍后重试。");
+            return;
+        }
+
+        if (addedCount == wrongQuestions.size()) {
+            QMessageBox::information(
+                this,
+                "导入成功",
+                QString("已成功导入 %1 道错题到错题系统中。")
+                    .arg(addedCount)
+            );
+        } else {
+            QMessageBox::information(
+                this,
+                "导入完成",
+                QString("本次新增导入 %1 道错题（%2 道已存在，已跳过）。")
+                    .arg(addedCount)
+                    .arg(wrongQuestions.size() - addedCount)
+            );
+        }
         
         qDebug() << "[DEBUG] onWrongAnswersImportRequested: Refreshing wrong answers display";
         // 刷新显示

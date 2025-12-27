@@ -561,13 +561,13 @@ bool PracticeManager::askUserToImportWrongAnswers()
     return false;
 }
 
-void PracticeManager::importWrongAnswersToSet()
+int PracticeManager::importWrongAnswersToSet()
 {
     qDebug() << "[DEBUG] importWrongAnswersToSet: Starting import process";
     
     if (!m_wrongAnswerSet) {
         qDebug() << "[DEBUG] importWrongAnswersToSet: WrongAnswerSet not set, cannot import wrong answers";
-        return;
+        return -1;
     }
     
     QList<Question> wrongQuestions = m_questionManager.getWrongAnswers();
@@ -578,7 +578,7 @@ void PracticeManager::importWrongAnswersToSet()
     
     if (wrongQuestions.isEmpty() || wrongQuestions.size() != wrongIndices.size()) {
         qDebug() << "[DEBUG] importWrongAnswersToSet: No wrong answers to import or indices mismatch";
-        return;
+        return 0;
     }
     
     QVector<WrongAnswerItem> wrongItems;
@@ -609,13 +609,20 @@ void PracticeManager::importWrongAnswersToSet()
     }
     
     qDebug() << "[DEBUG] importWrongAnswersToSet: Adding" << wrongItems.size() << "items to WrongAnswerSet";
+    const int beforeCount = m_wrongAnswerSet->getTotalCount();
     m_wrongAnswerSet->addWrongAnswers(wrongItems);
+    const int afterCount = m_wrongAnswerSet->getTotalCount();
+    const int addedCount = afterCount - beforeCount;
     
     qDebug() << "[DEBUG] importWrongAnswersToSet: Saving to file";
     bool saveResult = m_wrongAnswerSet->saveToFile();
     qDebug() << "[DEBUG] importWrongAnswersToSet: Save result:" << (saveResult ? "success" : "failed");
     
     qDebug() << "[DEBUG] importWrongAnswersToSet: Imported" << wrongItems.size() << "wrong answers to WA_SET.json";
+    if (!saveResult) {
+        return -1;
+    }
+    return addedCount;
 }
 
 void PracticeManager::savePractice(ConfigManager *configManager)
