@@ -105,14 +105,9 @@ QString MarkdownRenderer::convertMarkdownToHtml(const QString &markdown)
     
     // HTML特殊字符转义（在保护特殊内容之后进行）
     html = escapeHtmlSpecialChars(html);
-    
-    // 恢复并处理被保护的内容
-    html = restoreAndProcessProtectedContent(html);
-    
-    // 处理多行空格：将多个连续空行合并为一个
-    html.replace(QRegularExpression("\n\s*\n\s*\n+"), "\n\n");
-    // 处理行内多个空格：将多个连续空格合并为一个
-    html.replace(QRegularExpression(" {2,}"), " ");
+        
+    // 处理多行空行：将多个连续空行合并为一个
+    html.replace(QRegularExpression("\n\\s*\n\\s*\n+"), "\n\n");
     
     // 标题 (支持1-6级标题)
     html.replace(QRegularExpression("^###### (.+)$", QRegularExpression::MultilineOption), "<h6>\\1</h6>");
@@ -157,6 +152,9 @@ QString MarkdownRenderer::convertMarkdownToHtml(const QString &markdown)
     
     // 段落处理
     html = processParagraphs(html);
+
+    // 最后恢复并处理被保护的内容，避免代码块/行内代码被二次渲染
+    html = restoreAndProcessProtectedContent(html);
     
     return html;
 }
@@ -164,7 +162,9 @@ QString MarkdownRenderer::convertMarkdownToHtml(const QString &markdown)
 QString MarkdownRenderer::processCodeBlocks(const QString &html)
 {
     QString result = html;
-    QRegularExpression codeBlockRegex("```([^`]*?)```", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpression codeBlockRegex("```([^\\r\\n]*)\\R?([\\s\\S]*?)```",
+                                      QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpression languageRegex("^[A-Za-z][A-Za-z0-9_+\\-]{0,19}$");
     
     // 从后往前替换，避免位置偏移问题
     QList<QRegularExpressionMatch> matches;
@@ -175,25 +175,37 @@ QString MarkdownRenderer::processCodeBlocks(const QString &html)
     
     for (int i = matches.size() - 1; i >= 0; --i) {
         QRegularExpressionMatch match = matches[i];
-        QString codeContent = match.captured(1).trimmed();
-        
-        // 检查是否有语言标识
-        QStringList lines = codeContent.split('\n');
-        QString language = "";
-        QString code = codeContent;
-        
-        if (!lines.isEmpty()) {
-            QString firstLine = lines.first().trimmed();
-            // 如果第一行看起来像语言标识符
-            if (!firstLine.isEmpty() && !firstLine.contains(' ') && 
-                firstLine.length() < 20 && firstLine.length() > 0) {
-                language = firstLine;
-                lines.removeFirst();
-                code = lines.join('\n');
+        const QString fenceInfo = match.captured(1);
+        const QString body = match.captured(2);
+
+        QString language;
+        QString code;
+
+        const QString trimmedFenceInfo = fenceInfo.trimmed();
+        if (!trimmedFenceInfo.isEmpty() && languageRegex.match(trimmedFenceInfo).hasMatch()) {
+            language = trimmedFenceInfo;
+            code = body;
+        } else {
+            language.clear();
+            code = fenceInfo;
+            if (code.startsWith(' ')) {
+                code = code.mid(1);
+            }
+            if (!body.isEmpty()) {
+                if (!code.isEmpty()) {
+                    code += "\n";
+                }
+                code += body;
             }
         }
-        
-        QString escapedCode = code.toHtmlEscaped();
+
+        code.replace("\r\n", "\n");
+        code.replace("\r", "\n");
+        if (code.endsWith('\n')) {
+            code.chop(1);
+        }
+
+        const QString escapedCode = code.toHtmlEscaped();
         QString codeBlock;
         if (!language.isEmpty()) {
             codeBlock = QString("<pre><code class=\"language-%1\">%2</code></pre>")
@@ -262,85 +274,53 @@ QString MarkdownRenderer::escapeHtmlSpecialChars(const QString &html)
 
 QString MarkdownRenderer::processParagraphs(const QString &html)
 {
-    QStringList lines = html.split('\n');
-    QStringList processedLines;
-    
-    for (int i = 0; i < lines.size(); ++i) {
-        QString line = lines[i].trimmed();
-        
-        // 跳过空行
+    const QStringList lines = html.split('\n');
+    QStringList outputLines;
+    QStringList paragraphLines;
+
+    auto flushParagraph = [&]() {
+        if (paragraphLines.isEmpty()) {
+            return;
+        }
+        outputLines.append("<p>" + paragraphLines.join(" ") + "</p>");
+        paragraphLines.clear();
+    };
+
+    for (const QString &rawLine : lines) {
+        const QString line = rawLine.trimmed();
+
         if (line.isEmpty()) {
-            processedLines.append("");
+            flushParagraph();
             continue;
         }
-        
-        // 检查是否是已经处理过的HTML标签
-        if (line.startsWith("<h") || 
-            line.startsWith("<ul") || 
-            line.startsWith("<ol") || 
-            line.startsWith("<li") || 
-            line.startsWith("<blockquote") || 
-            line.startsWith("<pre") || 
-            line.startsWith("<table") || 
-            line.startsWith("<tr") || 
-            line.startsWith("<th") || 
-            line.startsWith("<td") || 
+
+        const bool isProtected = line.startsWith("__PROTECTED_");
+        const bool isBlockTag =
+            line.startsWith("<h") ||
+            line.startsWith("<ul") ||
+            line.startsWith("<ol") ||
+            line.startsWith("<li") ||
+            line.startsWith("<blockquote") ||
+            line.startsWith("<pre") ||
+            line.startsWith("<table") ||
+            line.startsWith("<tr") ||
+            line.startsWith("<th") ||
+            line.startsWith("<td") ||
             line.startsWith("<hr") ||
-            line.startsWith("</")) {
-            processedLines.append(line);
+            line.startsWith("</");
+
+        if (isProtected || isBlockTag) {
+            flushParagraph();
+            outputLines.append(line);
             continue;
         }
-        
-        // 检查是否是段落的开始
-        bool isParagraphStart = true;
-        if (i > 0) {
-            QString prevLine = lines[i-1].trimmed();
-            if (!prevLine.isEmpty() && 
-                !prevLine.startsWith("<h") && 
-                !prevLine.startsWith("</h") &&
-                !prevLine.startsWith("<ul") && 
-                !prevLine.startsWith("</ul") &&
-                !prevLine.startsWith("<ol") && 
-                !prevLine.startsWith("</ol") &&
-                !prevLine.startsWith("<blockquote") && 
-                !prevLine.startsWith("</blockquote") &&
-                !prevLine.startsWith("<pre") && 
-                !prevLine.startsWith("</pre") &&
-                !prevLine.startsWith("<table") && 
-                !prevLine.startsWith("</table") &&
-                !prevLine.startsWith("<hr")) {
-                isParagraphStart = false;
-            }
-        }
-        
-        if (isParagraphStart) {
-            processedLines.append("<p>" + line);
-        } else {
-            processedLines.append(line);
-        }
-        
-        // 检查是否是段落的结束
-        bool isParagraphEnd = true;
-        if (i < lines.size() - 1) {
-            QString nextLine = lines[i+1].trimmed();
-            if (!nextLine.isEmpty() && 
-                !nextLine.startsWith("<h") && 
-                !nextLine.startsWith("<ul") && 
-                !nextLine.startsWith("<ol") && 
-                !nextLine.startsWith("<blockquote") && 
-                !nextLine.startsWith("<pre") && 
-                !nextLine.startsWith("<table") && 
-                !nextLine.startsWith("<hr")) {
-                isParagraphEnd = false;
-            }
-        }
-        
-        if (isParagraphEnd && isParagraphStart) {
-            processedLines[processedLines.size()-1] += "</p>";
-        }
+
+        paragraphLines.append(line);
     }
-    
-    return processedLines.join('\n');
+
+    flushParagraph();
+
+    return outputLines.join('\n');
 }
 
 QString MarkdownRenderer::processLists(const QString &html)
@@ -809,7 +789,7 @@ QString MarkdownRenderer::protectSpecialContent(const QString &html)
     QStringList placeholders;
     
     // 保护代码块 - 使用原始markdown语法
-    QRegularExpression codeBlockRegex("```([^`]*?)```", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpression codeBlockRegex("```[^\\r\\n]*\\R?[\\s\\S]*?```", QRegularExpression::DotMatchesEverythingOption);
     QRegularExpressionMatchIterator codeIterator = codeBlockRegex.globalMatch(result);
     QList<QRegularExpressionMatch> codeMatches;
     while (codeIterator.hasNext()) {
