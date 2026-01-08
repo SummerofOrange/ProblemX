@@ -397,10 +397,8 @@ QString MarkdownRenderer::processLists(const QString &html)
                     olStartStack.pop();
                 }
             }
-            
-            if (!trimmedLine.isEmpty()) {
-                processedLines.append(line);
-            }
+
+            processedLines.append(line);
         }
     }
     
