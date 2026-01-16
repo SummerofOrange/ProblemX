@@ -12,6 +12,12 @@
 #include <QInputDialog>
 #include <QApplication>
 #include <QStyle>
+#include <QHeaderView>
+#include <QSignalBlocker>
+#include <QFile>
+#include <QResizeEvent>
+#include <QTextOption>
+#include <QtMath>
 
 BankEditorWidget::BankEditorWidget(QWidget *parent)
     : QWidget(parent)
@@ -258,6 +264,31 @@ void BankEditorWidget::setupUI()
     m_questionTextEdit = new QTextEdit();
     m_questionTextEdit->setMinimumHeight(150);
     m_questionTextEdit->setPlaceholderText("请输入题目内容，支持Markdown语法和LaTeX数学公式...");
+
+    m_imageGroup = new QGroupBox("图片");
+    m_imageLayout = new QVBoxLayout(m_imageGroup);
+
+    m_imageTable = new QTableWidget();
+    m_imageTable->setColumnCount(2);
+    m_imageTable->setHorizontalHeaderLabels(QStringList() << "键" << "路径");
+    m_imageTable->horizontalHeader()->setStretchLastSection(true);
+    m_imageTable->verticalHeader()->setVisible(false);
+    m_imageTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_imageTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_imageTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    m_imageTable->setMinimumHeight(130);
+
+    m_imageButtonLayout = new QHBoxLayout();
+    m_addImageButton = new QPushButton("添加");
+    m_removeImageButton = new QPushButton("删除");
+    m_chooseImageButton = new QPushButton("选择图片");
+    m_imageButtonLayout->addWidget(m_addImageButton);
+    m_imageButtonLayout->addWidget(m_removeImageButton);
+    m_imageButtonLayout->addStretch();
+    m_imageButtonLayout->addWidget(m_chooseImageButton);
+
+    m_imageLayout->addWidget(m_imageTable);
+    m_imageLayout->addLayout(m_imageButtonLayout);
     
     // Dynamic editor stack
     m_editorStack = new QStackedWidget();
@@ -271,6 +302,7 @@ void BankEditorWidget::setupUI()
     m_editorGroupLayout->addLayout(m_typeLayout);
     m_editorGroupLayout->addWidget(m_questionLabel);
     m_editorGroupLayout->addWidget(m_questionTextEdit);
+    m_editorGroupLayout->addWidget(m_imageGroup);
     m_editorGroupLayout->addWidget(m_editorStack);
     
     m_editorLayout->addWidget(m_editorGroup);
@@ -374,8 +406,14 @@ void BankEditorWidget::setupChoiceEditor()
     
     // Choice options (will be created dynamically)
     for (int i = 0; i < 8; ++i) {
-        QLineEdit *edit = new QLineEdit();
+        QTextEdit *edit = new QTextEdit();
         edit->setPlaceholderText(QString("选项 %1").arg(QChar('A' + i)));
+        edit->setAcceptRichText(false);
+        edit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        edit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        edit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        edit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        edit->setMinimumHeight(36);
         edit->setVisible(i < 4);
         m_choiceEdits.append(edit);
         m_choiceEditorLayout->addWidget(edit);
@@ -436,8 +474,14 @@ void BankEditorWidget::setupMultiChoiceEditor()
     
     // Choice options (will be created dynamically)
     for (int i = 0; i < 8; ++i) {
-        QLineEdit *edit = new QLineEdit();
+        QTextEdit *edit = new QTextEdit();
         edit->setPlaceholderText(QString("选项 %1").arg(QChar('A' + i)));
+        edit->setAcceptRichText(false);
+        edit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        edit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        edit->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        edit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        edit->setMinimumHeight(36);
         edit->setVisible(i < 4);
         m_multiChoiceEdits.append(edit);
         m_multiChoiceEditorLayout->addWidget(edit);
@@ -589,12 +633,12 @@ void BankEditorWidget::setupConnections()
             this, &BankEditorWidget::onBlankCountChanged);
     
     // Connect all choice edits
-    for (QLineEdit *edit : m_choiceEdits) {
-        connect(edit, &QLineEdit::textChanged, this, &BankEditorWidget::onQuestionContentChanged);
+    for (QTextEdit *edit : m_choiceEdits) {
+        connect(edit, &QTextEdit::textChanged, this, &BankEditorWidget::onQuestionContentChanged);
     }
     
-    for (QLineEdit *edit : m_multiChoiceEdits) {
-        connect(edit, &QLineEdit::textChanged, this, &BankEditorWidget::onQuestionContentChanged);
+    for (QTextEdit *edit : m_multiChoiceEdits) {
+        connect(edit, &QTextEdit::textChanged, this, &BankEditorWidget::onQuestionContentChanged);
     }
     
     for (QLineEdit *edit : m_blankAnswerEdits) {
@@ -609,6 +653,15 @@ void BankEditorWidget::setupConnections()
     
     connect(m_multiChoiceAnswerEdit, &QTextEdit::textChanged,
             this, &BankEditorWidget::onQuestionContentChanged);
+
+    connect(m_addImageButton, &QPushButton::clicked,
+            this, &BankEditorWidget::onAddImageClicked);
+    connect(m_removeImageButton, &QPushButton::clicked,
+            this, &BankEditorWidget::onRemoveImageClicked);
+    connect(m_chooseImageButton, &QPushButton::clicked,
+            this, &BankEditorWidget::onChooseImageClicked);
+    connect(m_imageTable, &QTableWidget::cellChanged,
+            this, &BankEditorWidget::onImageTableChanged);
 }
 
 void BankEditorWidget::applyStyles()
@@ -878,8 +931,33 @@ void BankEditorWidget::onBackClicked()
 void BankEditorWidget::onQuestionContentChanged()
 {
     if (!m_isLoading) {
+        if (QTextEdit *edit = qobject_cast<QTextEdit*>(sender())) {
+            if (m_choiceEdits.contains(edit) || m_multiChoiceEdits.contains(edit)) {
+                adjustOptionEditHeight(edit);
+            }
+        }
         m_hasUnsavedChanges = true;
         updatePreview();
+    }
+}
+
+void BankEditorWidget::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    if (m_isLoading) {
+        return;
+    }
+
+    for (QTextEdit *edit : m_choiceEdits) {
+        if (edit && edit->isVisible()) {
+            adjustOptionEditHeight(edit);
+        }
+    }
+    for (QTextEdit *edit : m_multiChoiceEdits) {
+        if (edit && edit->isVisible()) {
+            adjustOptionEditHeight(edit);
+        }
     }
 }
 
@@ -892,6 +970,9 @@ void BankEditorWidget::onChoiceCountChanged(int count)
         // Update choice editor
         for (int i = 0; i < m_choiceEdits.size(); ++i) {
             m_choiceEdits[i]->setVisible(i < count);
+            if (i < count) {
+                adjustOptionEditHeight(m_choiceEdits[i]);
+            }
         }
         
         // Update answer combo box
@@ -903,6 +984,9 @@ void BankEditorWidget::onChoiceCountChanged(int count)
         // Update multi-choice editor
         for (int i = 0; i < m_multiChoiceEdits.size(); ++i) {
             m_multiChoiceEdits[i]->setVisible(i < count);
+            if (i < count) {
+                adjustOptionEditHeight(m_multiChoiceEdits[i]);
+            }
         }
     }
     
@@ -946,6 +1030,163 @@ void BankEditorWidget::onQuestionTypeChanged(const QString &type)
     onQuestionContentChanged();
 }
 
+void BankEditorWidget::onAddImageClicked()
+{
+    if (m_isLoading) {
+        return;
+    }
+
+    const QMap<QString, QString> current = getImagesFromTable();
+    int nextIndex = 1;
+    while (current.contains(QString("img%1").arg(nextIndex))) {
+        ++nextIndex;
+    }
+
+    const int row = m_imageTable->rowCount();
+    m_imageTable->insertRow(row);
+
+    QTableWidgetItem *keyItem = new QTableWidgetItem(QString("img%1").arg(nextIndex));
+    QTableWidgetItem *valueItem = new QTableWidgetItem("");
+    m_imageTable->setItem(row, 0, keyItem);
+    m_imageTable->setItem(row, 1, valueItem);
+    m_imageTable->setCurrentCell(row, 0);
+
+    m_hasUnsavedChanges = true;
+    updatePreview();
+}
+
+void BankEditorWidget::onRemoveImageClicked()
+{
+    if (m_isLoading) {
+        return;
+    }
+
+    const int row = m_imageTable->currentRow();
+    if (row < 0) {
+        return;
+    }
+
+    m_imageTable->removeRow(row);
+    m_hasUnsavedChanges = true;
+    updatePreview();
+}
+
+void BankEditorWidget::onChooseImageClicked()
+{
+    if (m_isLoading) {
+        return;
+    }
+
+    int row = m_imageTable->currentRow();
+    if (row < 0) {
+        onAddImageClicked();
+        row = m_imageTable->currentRow();
+        if (row < 0) {
+            return;
+        }
+    }
+
+    const QString filePath = QFileDialog::getOpenFileName(
+        this,
+        "选择图片",
+        QString(),
+        "Images (*.png *.jpg *.jpeg *.bmp *.gif);;All Files (*.*)"
+    );
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    const QString baseDir = getCurrentImageBaseDir();
+    const QString jsonDir = QFileInfo(m_bankFilePath).absolutePath();
+    const QString targetBaseDir = !jsonDir.trimmed().isEmpty() ? jsonDir : baseDir;
+
+    QTableWidgetItem *valueItem = m_imageTable->item(row, 1);
+    if (!valueItem) {
+        valueItem = new QTableWidgetItem();
+        m_imageTable->setItem(row, 1, valueItem);
+    }
+
+    QString valueToStore;
+    if (!targetBaseDir.trimmed().isEmpty()) {
+        const QString assetDirPath = QDir(targetBaseDir).filePath("asset");
+        QDir assetDir(assetDirPath);
+        if (!assetDir.exists()) {
+            if (!QDir(targetBaseDir).mkpath("asset")) {
+                QMessageBox::warning(this, "复制失败", QString("无法创建asset目录:\n%1").arg(assetDirPath));
+                return;
+            } else {
+                assetDir = QDir(assetDirPath);
+            }
+        }
+
+        if (assetDir.exists()) {
+            const QFileInfo srcInfo(filePath);
+            const QString originalName = srcInfo.fileName();
+            const QString baseName = srcInfo.completeBaseName();
+            const QString suffix = srcInfo.suffix();
+
+            const QString srcAbsPath = QFileInfo(filePath).absoluteFilePath();
+            const QString srcDirAbsPath = QFileInfo(filePath).absoluteDir().absolutePath();
+            const QString assetDirAbsPath = QFileInfo(assetDirPath).absoluteFilePath();
+            if (QDir::cleanPath(srcDirAbsPath).compare(QDir::cleanPath(assetDirAbsPath), Qt::CaseInsensitive) == 0) {
+                valueToStore = QString("asset/%1").arg(originalName);
+            } else {
+            auto buildFileName = [&](int index) -> QString {
+                if (index <= 0) {
+                    return originalName;
+                }
+                if (suffix.isEmpty()) {
+                    return QString("%1_%2").arg(baseName).arg(index);
+                }
+                return QString("%1_%2.%3").arg(baseName).arg(index).arg(suffix);
+            };
+
+            QString destFileName;
+            QString destAbsPath;
+            bool foundSlot = false;
+            for (int i = 0; i < 1000; ++i) {
+                destFileName = buildFileName(i);
+                destAbsPath = assetDir.filePath(destFileName);
+                if (!QFile::exists(destAbsPath)) {
+                    foundSlot = true;
+                    break;
+                }
+            }
+            if (!foundSlot) {
+                QMessageBox::warning(this, "复制失败", "asset目录下同名文件过多，无法生成新文件名");
+                return;
+            }
+
+            const QString destAbsPathNormalized = QFileInfo(destAbsPath).absoluteFilePath();
+            if (!QFile::copy(srcAbsPath, destAbsPathNormalized)) {
+                QMessageBox::warning(this, "复制失败", QString("无法复制图片到asset目录:\n%1\n\n目标:\n%2").arg(srcAbsPath, destAbsPathNormalized));
+                return;
+            }
+
+            valueToStore = QString("asset/%1").arg(destFileName);
+            }
+        }
+    } else {
+        valueToStore = filePath;
+    }
+
+    valueItem->setText(QDir::fromNativeSeparators(valueToStore));
+
+    m_hasUnsavedChanges = true;
+    updatePreview();
+}
+
+void BankEditorWidget::onImageTableChanged(int row, int column)
+{
+    Q_UNUSED(row);
+    Q_UNUSED(column);
+    if (m_isLoading) {
+        return;
+    }
+    m_hasUnsavedChanges = true;
+    updatePreview();
+}
+
 void BankEditorWidget::loadQuestionToEditor(int index)
 {
     if (index < 0 || index >= m_questions.size()) {
@@ -985,6 +1226,8 @@ void BankEditorWidget::loadQuestionToEditor(int index)
     
     // Populate type-specific fields
     populateEditorFromQuestion(question);
+
+    setImagesToTable(question.getImages());
     
     m_isLoading = false;
     
@@ -1047,7 +1290,9 @@ void BankEditorWidget::updatePreview()
 {
     // Update question text preview
     QString questionText = m_questionTextEdit->toPlainText();
-    m_previewRenderer->setContent(questionText);
+    const QMap<QString, QString> images = getImagesFromTable();
+    const QString imageBaseDir = getCurrentImageBaseDir();
+    m_previewRenderer->setContent(questionText, images, imageBaseDir);
     
     // Update type-specific preview
     QString typeData = m_typeComboBox->currentData().toString();
@@ -1056,11 +1301,11 @@ void BankEditorWidget::updatePreview()
         int choiceCount = m_choiceCountSpinBox->value();
         for (int i = 0; i < m_choicePreviewRenderers.size(); ++i) {
             if (i < choiceCount) {
-                QString choiceText = m_choiceEdits[i]->text();
+                QString choiceText = m_choiceEdits[i]->toPlainText();
                 if (choiceText.isEmpty()) {
                     choiceText = QString("%1. 选项%1").arg(QChar('A' + i));
                 }
-                m_choicePreviewRenderers[i]->setContent(QString("○ %1").arg(choiceText));
+                m_choicePreviewRenderers[i]->setContent(QString("○ %1").arg(choiceText), images, imageBaseDir);
                 m_choicePreviewRenderers[i]->setVisible(true);
             } else {
                 m_choicePreviewRenderers[i]->setVisible(false);
@@ -1070,11 +1315,11 @@ void BankEditorWidget::updatePreview()
         int choiceCount = m_multiChoiceCountSpinBox->value();
         for (int i = 0; i < m_multiChoicePreviewRenderers.size(); ++i) {
             if (i < choiceCount) {
-                QString choiceText = m_multiChoiceEdits[i]->text();
+                QString choiceText = m_multiChoiceEdits[i]->toPlainText();
                 if (choiceText.isEmpty()) {
                     choiceText = QString("%1. 选项%1").arg(QChar('A' + i));
                 }
-                m_multiChoicePreviewRenderers[i]->setContent(QString("☐ %1").arg(choiceText));
+                m_multiChoicePreviewRenderers[i]->setContent(QString("☐ %1").arg(choiceText), images, imageBaseDir);
                 m_multiChoicePreviewRenderers[i]->setVisible(true);
             } else {
                 m_multiChoicePreviewRenderers[i]->setVisible(false);
@@ -1098,10 +1343,10 @@ void BankEditorWidget::clearEditor()
     m_questionTextEdit->clear();
     
     // Clear all choice edits
-    for (QLineEdit *edit : m_choiceEdits) {
+    for (QTextEdit *edit : m_choiceEdits) {
         edit->clear();
     }
-    for (QLineEdit *edit : m_multiChoiceEdits) {
+    for (QTextEdit *edit : m_multiChoiceEdits) {
         edit->clear();
     }
     for (QLineEdit *edit : m_blankAnswerEdits) {
@@ -1111,6 +1356,8 @@ void BankEditorWidget::clearEditor()
     m_choiceAnswerComboBox->setCurrentIndex(0);
     m_trueOrFalseAnswerComboBox->setCurrentIndex(0);
     m_multiChoiceAnswerEdit->clear();
+
+    m_imageTable->setRowCount(0);
     
     m_isLoading = false;
     
@@ -1128,12 +1375,12 @@ bool BankEditorWidget::validateCurrentQuestion()
     QString typeData = m_typeComboBox->currentData().toString();
     
     if (typeData == "Choice" || typeData == "MultipleChoice") {
-        QVector<QLineEdit*> *edits = (typeData == "Choice") ? &m_choiceEdits : &m_multiChoiceEdits;
+        QVector<QTextEdit*> *edits = (typeData == "Choice") ? &m_choiceEdits : &m_multiChoiceEdits;
         QSpinBox *countSpinBox = (typeData == "Choice") ? m_choiceCountSpinBox : m_multiChoiceCountSpinBox;
         
         int choiceCount = countSpinBox->value();
         for (int i = 0; i < choiceCount; ++i) {
-            if ((*edits)[i]->text().trimmed().isEmpty()) {
+            if ((*edits)[i]->toPlainText().trimmed().isEmpty()) {
                 QMessageBox::warning(this, "验证失败", QString("选项 %1 不能为空。").arg(QChar('A' + i)));
                 return false;
             }
@@ -1212,7 +1459,7 @@ Question BankEditorWidget::createQuestionFromEditor()
         QStringList choices;
         int choiceCount = m_choiceCountSpinBox->value();
         for (int i = 0; i < choiceCount; ++i) {
-            choices.append(m_choiceEdits[i]->text());
+            choices.append(m_choiceEdits[i]->toPlainText());
         }
         question.setChoices(choices);
         question.setSingleAnswer(m_choiceAnswerComboBox->currentText());
@@ -1222,7 +1469,7 @@ Question BankEditorWidget::createQuestionFromEditor()
         QStringList choices;
         int choiceCount = m_multiChoiceCountSpinBox->value();
         for (int i = 0; i < choiceCount; ++i) {
-            choices.append(m_multiChoiceEdits[i]->text());
+            choices.append(m_multiChoiceEdits[i]->toPlainText());
         }
         question.setChoices(choices);
         // 处理多选题答案格式，确保以逗号分隔
@@ -1248,6 +1495,8 @@ Question BankEditorWidget::createQuestionFromEditor()
         }
         question.setAnswers(answers);
     }
+
+    question.setImages(getImagesFromTable());
     
     return question;
 }
@@ -1261,7 +1510,8 @@ void BankEditorWidget::populateEditorFromQuestion(const Question &question)
         m_choiceCountSpinBox->setValue(choices.size());
         
         for (int i = 0; i < choices.size() && i < m_choiceEdits.size(); ++i) {
-            m_choiceEdits[i]->setText(choices[i]);
+            m_choiceEdits[i]->setPlainText(choices[i]);
+            adjustOptionEditHeight(m_choiceEdits[i]);
         }
         
         QString answer = question.getSingleAnswer();
@@ -1280,7 +1530,8 @@ void BankEditorWidget::populateEditorFromQuestion(const Question &question)
         m_multiChoiceCountSpinBox->setValue(choices.size());
         
         for (int i = 0; i < choices.size() && i < m_multiChoiceEdits.size(); ++i) {
-            m_multiChoiceEdits[i]->setText(choices[i]);
+            m_multiChoiceEdits[i]->setPlainText(choices[i]);
+            adjustOptionEditHeight(m_multiChoiceEdits[i]);
         }
         
         m_multiChoiceAnswerEdit->setPlainText(question.getSingleAnswer());
@@ -1293,6 +1544,146 @@ void BankEditorWidget::populateEditorFromQuestion(const Question &question)
             m_blankAnswerEdits[i]->setText(answers[i]);
         }
     }
+}
+
+void BankEditorWidget::adjustOptionEditHeight(QTextEdit *edit)
+{
+    if (!edit) {
+        return;
+    }
+
+    edit->document()->setTextWidth(edit->viewport()->width());
+
+    const int minHeight = 36;
+    int optionCount = 0;
+    QVector<QTextEdit*> *optionEdits = nullptr;
+    if (m_choiceEdits.contains(edit)) {
+        optionEdits = &m_choiceEdits;
+        optionCount = m_choiceCountSpinBox ? m_choiceCountSpinBox->value() : 0;
+    } else if (m_multiChoiceEdits.contains(edit)) {
+        optionEdits = &m_multiChoiceEdits;
+        optionCount = m_multiChoiceCountSpinBox ? m_multiChoiceCountSpinBox->value() : 0;
+    }
+
+    optionCount = qMax(optionCount, 1);
+
+    int maxHeight = 180;
+    if (QWidget *container = edit->parentWidget()) {
+        QVBoxLayout *layout = qobject_cast<QVBoxLayout*>(container->layout());
+
+        int top = 0, left = 0, bottom = 0, right = 0;
+        if (layout) {
+            layout->getContentsMargins(&left, &top, &right, &bottom);
+        }
+
+        const int containerHeight = container->height();
+        int fixedHeight = top + bottom;
+        int visibleCount = 0;
+
+        if (layout) {
+            for (int i = 0; i < layout->count(); ++i) {
+                QLayoutItem *item = layout->itemAt(i);
+                if (!item) {
+                    continue;
+                }
+
+                if (QWidget *w = item->widget()) {
+                    if (!w->isVisible()) {
+                        continue;
+                    }
+                    ++visibleCount;
+
+                    const QTextEdit *asOption = qobject_cast<QTextEdit*>(w);
+                    if (asOption && optionEdits && optionEdits->contains(const_cast<QTextEdit*>(asOption))) {
+                        continue;
+                    }
+                    fixedHeight += w->sizeHint().height();
+                } else if (QSpacerItem *sp = item->spacerItem()) {
+                    const QSize hint = sp->sizeHint();
+                    if (hint.height() > 0) {
+                        fixedHeight += hint.height();
+                        ++visibleCount;
+                    }
+                }
+            }
+        }
+
+        const int spacing = layout ? layout->spacing() : 0;
+        const int spacingReserve = spacing * qMax(visibleCount - 1, 0);
+
+        int availableForOptions = containerHeight - fixedHeight - spacingReserve;
+        availableForOptions = qMax(availableForOptions, minHeight * optionCount);
+
+        maxHeight = availableForOptions / optionCount;
+        maxHeight = qMax(maxHeight, minHeight);
+        maxHeight = qMin(maxHeight, qMax(180, containerHeight / 2));
+    }
+    const int docHeight = qCeil(edit->document()->size().height());
+
+    const int extra = edit->frameWidth() * 2 + qCeil(edit->document()->documentMargin() * 2) + 8;
+    const int target = qBound(minHeight, docHeight + extra, maxHeight);
+
+    edit->setMinimumHeight(target);
+    edit->setMaximumHeight(maxHeight);
+    edit->updateGeometry();
+}
+
+QMap<QString, QString> BankEditorWidget::getImagesFromTable() const
+{
+    QMap<QString, QString> images;
+    const int rows = m_imageTable->rowCount();
+    for (int row = 0; row < rows; ++row) {
+        QTableWidgetItem *keyItem = m_imageTable->item(row, 0);
+        QTableWidgetItem *valueItem = m_imageTable->item(row, 1);
+        const QString key = keyItem ? keyItem->text().trimmed() : QString();
+        const QString value = valueItem ? valueItem->text().trimmed() : QString();
+        if (!key.isEmpty() && !value.isEmpty()) {
+            images.insert(key, value);
+        }
+    }
+    return images;
+}
+
+void BankEditorWidget::setImagesToTable(const QMap<QString, QString> &images)
+{
+    QSignalBlocker blocker(m_imageTable);
+    m_imageTable->setRowCount(0);
+
+    int row = 0;
+    for (auto it = images.begin(); it != images.end(); ++it) {
+        m_imageTable->insertRow(row);
+        m_imageTable->setItem(row, 0, new QTableWidgetItem(it.key()));
+        m_imageTable->setItem(row, 1, new QTableWidgetItem(it.value()));
+        ++row;
+    }
+}
+
+QString BankEditorWidget::getCurrentImageBaseDir() const
+{
+    if (m_currentSubject.trimmed().isEmpty()) {
+        return QString();
+    }
+
+    QString typeData = m_typeComboBox->currentData().toString();
+    QString typeDir;
+    if (typeData == "Choice") {
+        typeDir = "Choice";
+    } else if (typeData == "TrueOrFalse") {
+        typeDir = "TrueOrFalse";
+    } else if (typeData == "FillBlank") {
+        typeDir = "FillBlank";
+    } else if (typeData == "MultipleChoice") {
+        typeDir = "MultiChoice";
+    } else {
+        typeDir = "Choice";
+    }
+
+    ConfigManager configManager;
+    const QString subjectPath = configManager.getSubjectPath(m_currentSubject);
+    if (!subjectPath.isEmpty()) {
+        return QDir(subjectPath).filePath(typeDir);
+    }
+    return QDir(QApplication::applicationDirPath()).filePath("Subject/" + m_currentSubject + "/" + typeDir);
 }
 
 QString BankEditorWidget::escapeJsonString(const QString &str)

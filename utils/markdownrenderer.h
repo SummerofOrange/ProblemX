@@ -8,6 +8,7 @@
 #include <QUrl>
 #include <QDir>
 #include <QStandardPaths>
+#include <QMap>
 
 class MarkdownRenderer : public QWidget
 {
@@ -18,6 +19,7 @@ public:
     ~MarkdownRenderer();
     
     void setContent(const QString &markdownText);
+    void setContent(const QString &markdownText, const QMap<QString, QString> &images, const QString &imageBaseDir = QString());
     void setMinimumHeight(int height);
     void setMaximumHeight(int height);
     
@@ -27,6 +29,8 @@ public:
     // 设置样式主题
     void setStyleTheme(const QString &theme = "default");
     
+    void resizeEvent(QResizeEvent *event) override;
+
 private slots:
     void onLoadFinished(bool success);
     void adjustSizeToContent();
@@ -59,6 +63,11 @@ private:
     // 用于保护特殊内容的成员变量
     QStringList m_protectedBlocks;
     QStringList m_placeholders;
+
+    QMap<QString, QString> m_images;
+    QString m_imageBaseDir;
+
+    bool m_resizePending;
 };
 
 #endif // MARKDOWNRENDERER_H

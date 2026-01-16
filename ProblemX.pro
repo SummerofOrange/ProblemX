@@ -37,13 +37,10 @@ HEADERS += \
     models/questionbank.h \
     utils/jsonutils.h \
     utils/bankscanner.h \
-    utils/markdownrenderer.h \
-    Reference/json.hpp
+    utils/markdownrenderer.h
 
 FORMS += \
     mainwindow.ui
-
-INCLUDEPATH += Reference
 
 # Copy resources folder to build directory (same directory as exe)
 CONFIG(debug, debug|release) {

@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <QJsonObject>
+#include <QMap>
 #include <QMetaType>
 #include <QDebug>
 #include <QDataStream>
@@ -27,9 +28,9 @@ public:
     QStringList getChoices() const { return m_choices; }
     QStringList getAnswers() const { return m_answers; }
     QString getSingleAnswer() const { return m_answers.isEmpty() ? "" : m_answers.first(); }
-    QString getImagePath() const { return m_imagePath; }
+    const QMap<QString, QString>& getImages() const { return m_images; }
     int getBlankNum() const { return m_blankNum; }
-    bool hasImage() const { return !m_imagePath.isEmpty(); }
+    bool hasImage() const { return !m_images.isEmpty(); }
     
     // Setters
     void setType(QuestionType type) { m_type = type; }
@@ -37,7 +38,7 @@ public:
     void setChoices(const QStringList &choices) { m_choices = choices; }
     void setAnswers(const QStringList &answers) { m_answers = answers; }
     void setSingleAnswer(const QString &answer) { m_answers = QStringList() << answer; }
-    void setImagePath(const QString &imagePath) { m_imagePath = imagePath; }
+    void setImages(const QMap<QString, QString> &images) { m_images = images; }
     void setBlankNum(int blankNum) { m_blankNum = blankNum; }
     
     // Utility methods
@@ -54,7 +55,7 @@ private:
     QString m_question;
     QStringList m_choices;  // For choice questions
     QStringList m_answers;  // Can be single or multiple answers
-    QString m_imagePath;    // Optional image path
+    QMap<QString, QString> m_images;
     int m_blankNum;         // For fill blank questions
 };
 

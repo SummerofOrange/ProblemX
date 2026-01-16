@@ -880,86 +880,7 @@ void PracticeWidget::updateQuestionDisplay()
     
     // 题目文本将在各个display函数中设置，这里不需要单独设置
     
-    // Update question image
-    QString imagePath = currentQuestion.getImagePath();
-    if (!imagePath.isEmpty()) {
-        QString fullImagePath;
-        
-        // 检查是否为绝对路径
-        if (QDir::isAbsolutePath(imagePath)) {
-            fullImagePath = imagePath;
-        } else {
-            // 相对路径：基于当前科目路径和题型解析
-            if (m_practiceManager) {
-                QString subjectPath = m_practiceManager->getCurrentSubjectPath();
-                if (!subjectPath.isEmpty()) {
-                    // 获取题型信息
-                    QString questionType;
-                    switch (currentQuestion.getType()) {
-                        case QuestionType::Choice:
-                            questionType = "Choice";
-                            break;
-                        case QuestionType::TrueOrFalse:
-                            questionType = "TrueOrFalse";
-                            break;
-                        case QuestionType::FillBlank:
-                            questionType = "FillBlank";
-                            break;
-                        default:
-                            questionType = "Choice"; // 默认值
-                            break;
-                    }
-                    
-                    // 构建完整路径：科目路径/题型/图片路径
-                    QDir subjectDir(subjectPath);
-                    fullImagePath = subjectDir.filePath(questionType + "/" + imagePath);
-                } else {
-                    // 如果没有科目路径，尝试基于应用程序目录
-                    QString questionType;
-                    switch (currentQuestion.getType()) {
-                        case QuestionType::Choice:
-                            questionType = "Choice";
-                            break;
-                        case QuestionType::TrueOrFalse:
-                            questionType = "TrueOrFalse";
-                            break;
-                        case QuestionType::FillBlank:
-                            questionType = "FillBlank";
-                            break;
-                        default:
-                            questionType = "Choice";
-                            break;
-                    }
-                    
-                    QDir appDir(QApplication::applicationDirPath());
-                    QString currentSubject = m_practiceManager->getCurrentSession().subject;
-                    fullImagePath = appDir.filePath("Subject/" + currentSubject + "/" + questionType + "/" + imagePath);
-                }
-            } else {
-                fullImagePath = imagePath;
-            }
-        }
-        
-        qDebug() << "Loading image from:" << fullImagePath;
-        
-        if (QFile::exists(fullImagePath)) {
-            QPixmap pixmap(fullImagePath);
-            if (!pixmap.isNull()) {
-                // Scale image to fit while maintaining aspect ratio
-                QPixmap scaledPixmap = pixmap.scaled(400, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                m_questionImageLabel->setPixmap(scaledPixmap);
-                m_questionImageLabel->setVisible(true);
-            } else {
-                qDebug() << "Failed to load image:" << fullImagePath;
-                m_questionImageLabel->setVisible(false);
-            }
-        } else {
-            qDebug() << "Image file does not exist:" << fullImagePath;
-            m_questionImageLabel->setVisible(false);
-        }
-    } else {
-        m_questionImageLabel->setVisible(false);
-    }
+    m_questionImageLabel->setVisible(false);
     
     // Display question based on type
     clearAnswerInputs();
@@ -1013,21 +934,50 @@ void PracticeWidget::updateQuestionDisplay()
 
 void PracticeWidget::displayChoiceQuestion(const Question &question)
 {
-    // 清除旧的选项渲染器
-    for (auto renderer : m_choiceRenderers) {
-        renderer->deleteLater();
-    }
-    m_choiceRenderers.clear();
-    
-    // 清除旧的选项按钮
-    for (auto button : m_choiceButtons) {
+    for (QAbstractButton *button : m_choiceButtonGroup->buttons()) {
         m_choiceButtonGroup->removeButton(button);
-        button->deleteLater();
+    }
+    while (QLayoutItem *item = m_choiceLayout->takeAt(0)) {
+        if (QWidget *w = item->widget()) {
+            w->deleteLater();
+        }
+        delete item;
     }
     m_choiceButtons.clear();
+    m_choiceRenderers.clear();
     
+    QString imageBaseDir;
+    if (m_practiceManager) {
+        QString typeDir;
+        switch (question.getType()) {
+            case QuestionType::Choice:
+                typeDir = "Choice";
+                break;
+            case QuestionType::TrueOrFalse:
+                typeDir = "TrueOrFalse";
+                break;
+            case QuestionType::FillBlank:
+                typeDir = "FillBlank";
+                break;
+            case QuestionType::MultipleChoice:
+                typeDir = "MultiChoice";
+                break;
+            default:
+                typeDir = "Choice";
+                break;
+        }
+
+        const QString subjectPath = m_practiceManager->getCurrentSubjectPath();
+        if (!subjectPath.isEmpty()) {
+            imageBaseDir = QDir(subjectPath).filePath(typeDir);
+        } else {
+            const QString subjectName = m_practiceManager->getCurrentSession().subject;
+            imageBaseDir = QDir(QApplication::applicationDirPath()).filePath("Subject/" + subjectName + "/" + typeDir);
+        }
+    }
+
     // 设置题目内容
-    m_questionTextRenderer->setContent(question.getQuestion());
+    m_questionTextRenderer->setContent(question.getQuestion(), question.getImages(), imageBaseDir);
     
     // 创建新的选项
     const QStringList &choices = question.getChoices();
@@ -1036,16 +986,18 @@ void PracticeWidget::displayChoiceQuestion(const Question &question)
     for (int i = 0; i < choices.size() && i < labels.size(); ++i) {
         // 创建选项容器
         QWidget *choiceContainer = new QWidget();
+        choiceContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         QHBoxLayout *choiceLayout = new QHBoxLayout(choiceContainer);
         choiceLayout->setContentsMargins(0, 0, 0, 0);
         choiceLayout->setSpacing(10);
+        choiceLayout->setAlignment(Qt::AlignTop);
         
         // 创建单选按钮
         QRadioButton *radioButton = new QRadioButton(labels[i]);
         radioButton->setFixedWidth(30);
         
         // 创建选项内容渲染器
-        MarkdownRenderer *choiceRenderer = createChoiceRenderer(choices[i]);
+        MarkdownRenderer *choiceRenderer = createChoiceRenderer(choices[i], question.getImages(), imageBaseDir);
         
         choiceLayout->addWidget(radioButton);
         choiceLayout->addWidget(choiceRenderer, 1);
@@ -1064,21 +1016,32 @@ void PracticeWidget::displayChoiceQuestion(const Question &question)
 
 void PracticeWidget::displayTrueOrFalseQuestion(const Question &question)
 {
-    // 清除旧的选项渲染器
-    for (auto renderer : m_choiceRenderers) {
-        renderer->deleteLater();
-    }
-    m_choiceRenderers.clear();
-    
-    // 清除旧的选项按钮
-    for (QRadioButton *button : m_choiceButtons) {
+    for (QAbstractButton *button : m_choiceButtonGroup->buttons()) {
         m_choiceButtonGroup->removeButton(button);
-        button->deleteLater();
+    }
+    while (QLayoutItem *item = m_choiceLayout->takeAt(0)) {
+        if (QWidget *w = item->widget()) {
+            w->deleteLater();
+        }
+        delete item;
     }
     m_choiceButtons.clear();
+    m_choiceRenderers.clear();
     
+    QString imageBaseDir;
+    if (m_practiceManager) {
+        const QString typeDir = "TrueOrFalse";
+        const QString subjectPath = m_practiceManager->getCurrentSubjectPath();
+        if (!subjectPath.isEmpty()) {
+            imageBaseDir = QDir(subjectPath).filePath(typeDir);
+        } else {
+            const QString subjectName = m_practiceManager->getCurrentSession().subject;
+            imageBaseDir = QDir(QApplication::applicationDirPath()).filePath("Subject/" + subjectName + "/" + typeDir);
+        }
+    }
+
     // 设置题目内容
-    m_questionTextRenderer->setContent(question.getQuestion());
+    m_questionTextRenderer->setContent(question.getQuestion(), question.getImages(), imageBaseDir);
     
     // Create True/False buttons
     QRadioButton *trueButton = new QRadioButton("A. 正确");
@@ -1103,8 +1066,20 @@ void PracticeWidget::displayTrueOrFalseQuestion(const Question &question)
 
 void PracticeWidget::displayFillBlankQuestion(const Question &question)
 {
+    QString imageBaseDir;
+    if (m_practiceManager) {
+        const QString typeDir = "FillBlank";
+        const QString subjectPath = m_practiceManager->getCurrentSubjectPath();
+        if (!subjectPath.isEmpty()) {
+            imageBaseDir = QDir(subjectPath).filePath(typeDir);
+        } else {
+            const QString subjectName = m_practiceManager->getCurrentSession().subject;
+            imageBaseDir = QDir(QApplication::applicationDirPath()).filePath("Subject/" + subjectName + "/" + typeDir);
+        }
+    }
+
     // 设置题目内容
-    m_questionTextRenderer->setContent(question.getQuestion());
+    m_questionTextRenderer->setContent(question.getQuestion(), question.getImages(), imageBaseDir);
     
     // Clear existing edits
     for (QLineEdit *edit : m_fillBlankEdits) {
@@ -1141,8 +1116,20 @@ void PracticeWidget::displayMultiChoiceQuestion(const Question &question)
     }
     m_choiceRenderers.clear();
     
+    QString imageBaseDir;
+    if (m_practiceManager) {
+        const QString typeDir = "MultiChoice";
+        const QString subjectPath = m_practiceManager->getCurrentSubjectPath();
+        if (!subjectPath.isEmpty()) {
+            imageBaseDir = QDir(subjectPath).filePath(typeDir);
+        } else {
+            const QString subjectName = m_practiceManager->getCurrentSession().subject;
+            imageBaseDir = QDir(QApplication::applicationDirPath()).filePath("Subject/" + subjectName + "/" + typeDir);
+        }
+    }
+
     // 设置题目内容
-    m_questionTextRenderer->setContent(question.getQuestion());
+    m_questionTextRenderer->setContent(question.getQuestion(), question.getImages(), imageBaseDir);
     
     QStringList choices = question.getChoices();
     
@@ -1167,7 +1154,7 @@ void PracticeWidget::displayMultiChoiceQuestion(const Question &question)
         checkbox->setObjectName("multiChoiceBox");
         
         // 创建选项内容渲染器
-        MarkdownRenderer *choiceRenderer = createChoiceRenderer(choices[i]);
+        MarkdownRenderer *choiceRenderer = createChoiceRenderer(choices[i], question.getImages(), imageBaseDir);
         
         choiceLayout->addWidget(checkbox);
         choiceLayout->addWidget(choiceRenderer, 1);
@@ -1577,12 +1564,12 @@ void PracticeWidget::restoreUserAnswer()
     }
 }
 
-MarkdownRenderer* PracticeWidget::createChoiceRenderer(const QString &choiceText)
+MarkdownRenderer* PracticeWidget::createChoiceRenderer(const QString &choiceText, const QMap<QString, QString> &images, const QString &imageBaseDir)
 {
     MarkdownRenderer *renderer = new MarkdownRenderer(this);
-    renderer->setAutoResize(true, 300);  // 启用自动适配，最大高度300
+    renderer->setAutoResize(true, 0);
     renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    renderer->setContent(choiceText);
+    renderer->setContent(choiceText, images, imageBaseDir);
     return renderer;
 }
 

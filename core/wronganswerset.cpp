@@ -19,7 +19,13 @@ QJsonObject WrongAnswerItem::toJson() const
     obj["subject"] = subject;
     obj["questionType"] = questionType;
     obj["questionText"] = questionText;
-    obj["imagePath"] = imagePath;
+    if (!images.isEmpty()) {
+        QJsonObject imageObj;
+        for (auto it = images.constBegin(); it != images.constEnd(); ++it) {
+            imageObj.insert(it.key(), it.value());
+        }
+        obj["image"] = imageObj;
+    }
     
     QJsonArray choicesArray;
     for (const QString &choice : choices) {
@@ -58,7 +64,20 @@ WrongAnswerItem WrongAnswerItem::fromJson(const QJsonObject &json)
     item.subject = json["subject"].toString();
     item.questionType = json["questionType"].toString();
     item.questionText = json["questionText"].toString();
-    item.imagePath = json["imagePath"].toString();
+    item.images.clear();
+    if (json.contains("image")) {
+        const QJsonValue imageValue = json.value("image");
+        if (imageValue.isObject()) {
+            const QJsonObject imageObj = imageValue.toObject();
+            for (auto it = imageObj.begin(); it != imageObj.end(); ++it) {
+                const QString key = it.key().trimmed();
+                const QString value = it.value().toString();
+                if (!key.isEmpty() && !value.isEmpty()) {
+                    item.images.insert(key, value);
+                }
+            }
+        }
+    }
     
     QJsonArray choicesArray = json["choices"].toArray();
     for (const QJsonValue &value : choicesArray) {
@@ -98,7 +117,7 @@ WrongAnswerItem WrongAnswerItem::fromQuestion(const Question &question, const QS
     WrongAnswerItem item;
     item.subject = subject;
     item.questionText = question.getQuestion();
-    item.imagePath = question.getImagePath();
+    item.images = question.getImages();
     item.choices = question.getChoices();
     item.timestamp = QDateTime::currentDateTime();
     item.reviewCount = 0;
@@ -553,6 +572,17 @@ bool WrongAnswerSet::isDuplicate(const WrongAnswerItem &item) const
             choice = choice.trimmed();
         }
 
+        QStringList normalizedImages;
+        normalizedImages.reserve(it.images.size());
+        for (auto imgIt = it.images.constBegin(); imgIt != it.images.constEnd(); ++imgIt) {
+            const QString key = imgIt.key().trimmed();
+            const QString value = imgIt.value().trimmed();
+            if (!key.isEmpty() && !value.isEmpty()) {
+                normalizedImages.append(key + "=" + value);
+            }
+        }
+        normalizedImages.sort();
+
         QStringList normalizedCorrectAnswers = it.correctAnswers;
         for (QString &ans : normalizedCorrectAnswers) {
             ans = ans.trimmed();
@@ -565,7 +595,7 @@ bool WrongAnswerSet::isDuplicate(const WrongAnswerItem &item) const
         return it.subject + "\n" +
                it.questionType + "\n" +
                it.questionText + "\n" +
-               it.imagePath + "\n" +
+               normalizedImages.join("|") + "\n" +
                normalizedChoices.join("\n") + "\n" +
                normalizedCorrectAnswer + "\n" +
                normalizedCorrectAnswers.join("|");

@@ -23,6 +23,7 @@
 #include <QFrame>
 #include <QKeyEvent>
 #include <QShortcut>
+#include <QMap>
 #include "../models/question.h"
 #include "../utils/markdownrenderer.h"  // 新增
 
@@ -114,7 +115,7 @@ private:
     void displayMultiChoiceQuestion(const Question &question);
     
     // 新增：创建选项渲染器
-    MarkdownRenderer* createChoiceRenderer(const QString &choiceText);
+    MarkdownRenderer* createChoiceRenderer(const QString &choiceText, const QMap<QString, QString> &images, const QString &imageBaseDir);
     
     QString getCurrentAnswer() const;
     QStringList getCurrentAnswers() const;

@@ -950,60 +950,41 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
     m_detailSubjectLabel->setText(QString("科目: %1").arg(item.subject));
     m_detailTypeLabel->setText(QString("题型: %1").arg(getQuestionTypeString(item.questionType)));
     
-    // Format question text
-    QString questionText = item.questionText;
-    // Escape HTML special characters
-    questionText.replace("&", "&amp;");
-    questionText.replace("<", "&lt;");
-    questionText.replace(">", "&gt;");
-    // Replace newlines with <br> for HTML display
-    questionText.replace("\n", "<br>");
-    m_detailQuestionRenderer->setContent(QString("**题目:** %1").arg(questionText));
+    QString imageBaseDir;
+    if (m_configManager) {
+        const QString subjectPath = m_configManager->getSubjectPath(item.subject);
+        if (!subjectPath.isEmpty()) {
+            imageBaseDir = QDir(subjectPath).filePath(item.questionType);
+        } else {
+            imageBaseDir = QDir(QApplication::applicationDirPath()).filePath("Subject/" + item.subject + "/" + item.questionType);
+        }
+    } else {
+        imageBaseDir = QDir(QApplication::applicationDirPath()).filePath("Subject/" + item.subject + "/" + item.questionType);
+    }
+
+    m_detailQuestionRenderer->setContent(QString("**题目:**\n%1").arg(item.questionText), item.images, imageBaseDir);
     
     // Display image if exists
-    if (!item.imagePath.isEmpty()) {
+    QString displayImagePath;
+    if (!item.images.isEmpty()) {
+        if (item.images.contains("img1")) {
+            displayImagePath = item.images.value("img1");
+        } else {
+            displayImagePath = item.images.constBegin().value();
+        }
+    }
+
+    if (!displayImagePath.isEmpty()) {
         QString fullImagePath;
         
         // 检查是否为绝对路径
-        if (QDir::isAbsolutePath(item.imagePath)) {
-            fullImagePath = item.imagePath;
+        if (QDir::isAbsolutePath(displayImagePath)) {
+            fullImagePath = displayImagePath;
+        } else if (!imageBaseDir.isEmpty()) {
+            fullImagePath = QDir(imageBaseDir).filePath(displayImagePath);
         } else {
-            // 相对路径：基于当前科目路径和题型解析
-            if (m_practiceManager) {
-                QString subjectPath = m_practiceManager->getCurrentSubjectPath();
-                if (!subjectPath.isEmpty()) {
-                    // 构建完整路径：科目路径/题型/图片路径
-                    QDir subjectDir(subjectPath);
-                    QString questionTypeDir = item.questionType;
-                    fullImagePath = subjectDir.filePath(questionTypeDir + "/" + item.imagePath);
-                } else if (m_configManager) {
-                    // 如果没有当前科目路径，尝试通过科目名称获取路径
-                    QString subjectPath = m_configManager->getSubjectPath(item.subject);
-                    if (!subjectPath.isEmpty()) {
-                        QDir subjectDir(subjectPath);
-                        QString questionTypeDir = item.questionType;
-                        fullImagePath = subjectDir.filePath(questionTypeDir + "/" + item.imagePath);
-                    } else {
-                        // 如果都没有，尝试基于应用程序目录
-                        QDir appDir(QApplication::applicationDirPath());
-                        QString questionTypeDir = item.questionType;
-                        fullImagePath = appDir.filePath("Subject/" + item.subject + "/" + questionTypeDir + "/" + item.imagePath);
-                    }
-                } else {
-                    QDir appDir(QApplication::applicationDirPath());
-                    QString questionTypeDir = item.questionType;
-                    fullImagePath = appDir.filePath("Subject/" + item.subject + "/" + questionTypeDir + "/" + item.imagePath);
-                }
-            } else {
-                // 如果没有practiceManager，使用默认路径结构
-                QDir appDir(QApplication::applicationDirPath());
-                QString questionTypeDir = item.questionType;
-                fullImagePath = appDir.filePath("Subject/" + item.subject + "/" + questionTypeDir + "/" + item.imagePath);
-            }
+            fullImagePath = displayImagePath;
         }
-        
-        qDebug() << "Loading image from:" << fullImagePath;
-        qDebug() << "Subject:" << item.subject << "QuestionType:" << item.questionType << "ImagePath:" << item.imagePath;
         
         if (QFile::exists(fullImagePath)) {
             QPixmap pixmap(fullImagePath);
@@ -1030,7 +1011,7 @@ void ReviewWidget::displayWrongAnswerDetails(const WrongAnswerItem &item)
         for (int i = 0; i < item.choices.size() && i < labels.size(); ++i) {
             choicesText += QString("%1. %2\n").arg(labels[i]).arg(item.choices[i]);
         }
-        m_detailChoicesRenderer->setContent(choicesText.trimmed());
+        m_detailChoicesRenderer->setContent(choicesText.trimmed(), item.images, imageBaseDir);
         m_detailChoicesRenderer->setVisible(true);
     } else {
         m_detailChoicesRenderer->setVisible(false);
@@ -1409,9 +1390,9 @@ Question ReviewWidget::convertWrongAnswerItemToQuestion(const WrongAnswerItem &i
     // 设置题目内容
     question.setQuestion(item.questionText);
     
-    // 设置图片路径
-    if (!item.imagePath.isEmpty()) {
-        question.setImagePath(item.imagePath);
+    // 设置图片
+    if (!item.images.isEmpty()) {
+        question.setImages(item.images);
     }
     
     // 设置选项（如果有）

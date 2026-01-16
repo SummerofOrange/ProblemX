@@ -30,7 +30,7 @@ C:\Users\Admin\Desktop\Qt_project\ProblemX\Subject\DataStructure\Choice\Chapter1
 
 ### 1.1 图片资源 (Asset) 目录 (可选)
 
-如果题目中包含图片，建议在相应的 `<题型名称>` 目录下创建一个名为 `Asset` (或其他自定义名称，但需与JSON文件中 `image` 字段路径对应) 的子目录，用于存放图片资源。
+如果题目中包含图片，建议在相应的 `<题型名称>` 目录下创建一个名为 `Asset` (或其他自定义名称，但需与JSON文件中 `image` 对象里的路径对应) 的子目录，用于存放图片资源。
 
 **示例目录结构 (以数据结构科目为例):**
 
@@ -79,8 +79,19 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
     - 行内公式: `$公式内容$`
     - 块级公式: `$$公式内容$$`
     - 示例: `$E = mc^2$` 或 `$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$`
-- `"image"` (String, 可选): 如果题目包含图片，此字段表示图片的**相对路径**。路径的基准点是**当前JSON题库文件所在的目录**。
-  - 例如，如果题库文件是 `Subject/DataStructure/Choice/Chapter1_Choice.json`，图片位于 `Subject/DataStructure/Choice/Asset/chapter1/image1.png`，则 `"image"` 字段应填入 `"Asset/chapter1/image1.png"`。
+- `"image"` (Object, 可选): 如果题目包含图片，此字段需为一个**JSON对象**，用于定义图片ID与文件路径的映射关系。
+  - **Key**: 图片ID（例如 `"img1"`, `"figA"`），用于在题干中引用。
+  - **Value**: 图片文件的**相对路径**。路径的基准点是**当前JSON题库文件所在的目录**。
+  - **引用方式**: 在 `"question"` 字段中，使用 Markdown 图片语法 `![](图片ID)` 来显示图片。
+  - **示例**:
+    ```json
+    {
+      "question": "请看下图：\n\n![](img1)",
+      "image": {
+        "img1": "Asset/chapter1/image1.png"
+      }
+    }
+    ```
 
 ### 2.2 选择题 (Choice) 格式
 
@@ -103,7 +114,9 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
         "D. O(n^2)"
     ],
     "answer": "B",
-    "image": "Asset/complexity/figure1.png" // 可选的图片路径
+    "image": {
+        "img1": "Asset/complexity/figure1.png"
+    }
 }
 ```
 
@@ -310,10 +323,10 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 
 ### 4.4 兼容性说明
 
-- Markdown和LaTeX功能需要Qt WebEngine模块支持
-- 旧版本的题库文件完全兼容，无需修改
-- 新功能为可选功能，不使用时不影响题目正常显示
-- 自动适配功能默认启用，可通过代码配置关闭
+- **图片格式变更 (v1.1)**: v1.1 版本弃用了字符串格式的 `image` 字段。旧版题库（`"image": "path"`）需要转换为对象格式（`"image": {"img1": "path"}`）并在题干中添加引用才能正常显示。
+- **升级工具**: 使用项目根目录下的 `convert_old_problembank.py` 脚本可一键升级旧版题库。
+- Markdown和LaTeX功能需要Qt WebEngine模块支持。
+- 自动适配功能默认启用，可通过代码配置关闭。
 
 ---
 

@@ -68,8 +68,12 @@ QJsonObject Question::toJson() const
         json["answer"] = m_answers.isEmpty() ? "" : m_answers.first();
     }
     
-    if (!m_imagePath.isEmpty()) {
-        json["image"] = m_imagePath;
+    if (!m_images.isEmpty()) {
+        QJsonObject imageObj;
+        for (auto it = m_images.constBegin(); it != m_images.constEnd(); ++it) {
+            imageObj.insert(it.key(), it.value());
+        }
+        json["image"] = imageObj;
     }
     
     return json;
@@ -111,8 +115,19 @@ void Question::fromJson(const QJsonObject &json)
     }
     
     // Parse image path
+    m_images.clear();
     if (json.contains("image")) {
-        m_imagePath = json["image"].toString();
+        const QJsonValue imageValue = json.value("image");
+        if (imageValue.isObject()) {
+            const QJsonObject imageObj = imageValue.toObject();
+            for (auto it = imageObj.begin(); it != imageObj.end(); ++it) {
+                const QString key = it.key().trimmed();
+                const QString value = it.value().toString();
+                if (!key.isEmpty() && !value.isEmpty()) {
+                    m_images.insert(key, value);
+                }
+            }
+        }
     }
 }
 
@@ -162,7 +177,7 @@ QDataStream &operator<<(QDataStream &stream, const Question &question)
            << question.getQuestion()
            << question.getChoices()
            << question.getAnswers()
-           << question.getImagePath()
+           << question.getImages()
            << question.getBlankNum();
     return stream;
 }
@@ -172,16 +187,16 @@ QDataStream &operator>>(QDataStream &stream, Question &question)
     int type;
     QString questionText;
     QStringList choices, answers;
-    QString imagePath;
+    QMap<QString, QString> images;
     int blankNum;
     
-    stream >> type >> questionText >> choices >> answers >> imagePath >> blankNum;
+    stream >> type >> questionText >> choices >> answers >> images >> blankNum;
     
     question.setType(static_cast<QuestionType>(type));
     question.setQuestion(questionText);
     question.setChoices(choices);
     question.setAnswers(answers);
-    question.setImagePath(imagePath);
+    question.setImages(images);
     question.setBlankNum(blankNum);
     
     return stream;

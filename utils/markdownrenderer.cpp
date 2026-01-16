@@ -6,6 +6,10 @@
 #include <QCoreApplication>
 #include <QUrl>
 #include <QStack>
+#include <QDir>
+#include <QFileInfo>
+#include <QTimer>
+#include <QResizeEvent>
 
 MarkdownRenderer::MarkdownRenderer(QWidget *parent)
     : QWidget(parent)
@@ -15,6 +19,7 @@ MarkdownRenderer::MarkdownRenderer(QWidget *parent)
     , m_autoResize(false)
     , m_maxAutoHeight(0)
     , m_parentMaxHeight(0)
+    , m_resizePending(false)
 {
     setupWebEngine();
     createHtmlTemplate();
@@ -134,11 +139,61 @@ QString MarkdownRenderer::convertMarkdownToHtml(const QString &markdown)
     // 行内代码
     html.replace(QRegularExpression("`(.+?)`"), "<code>\\1</code>");
     
-    // 链接 [text](url)
-    html.replace(QRegularExpression("\\[([^\\]]+)\\]\\(([^\\)]+)\\)"), "<a href=\"\\2\">\\1</a>");
-    
     // 图片 ![alt](src)
-    html.replace(QRegularExpression("!\\[([^\\]]*)\\]\\(([^\\)]+)\\)"), "<img src=\"\\2\" alt=\"\\1\" />");
+    {
+        QRegularExpression imageRegex("!\\[([^\\]]*)\\]\\(([^\\)]+)\\)");
+        QList<QRegularExpressionMatch> matches;
+        QRegularExpressionMatchIterator it = imageRegex.globalMatch(html);
+        while (it.hasNext()) {
+            matches.append(it.next());
+        }
+        for (int i = matches.size() - 1; i >= 0; --i) {
+            const QRegularExpressionMatch match = matches[i];
+            const QString altText = match.captured(1);
+            const QString rawSrc = match.captured(2).trimmed();
+
+            QString resolvedSrc = rawSrc;
+            const QString key = rawSrc.trimmed();
+            if (!key.isEmpty() && m_images.contains(key)) {
+                const QString mapped = m_images.value(key).trimmed();
+                if (!mapped.isEmpty()) {
+                    resolvedSrc = mapped;
+                }
+            }
+
+            QUrl finalUrl;
+            if (resolvedSrc.startsWith("http://", Qt::CaseInsensitive) ||
+                resolvedSrc.startsWith("https://", Qt::CaseInsensitive) ||
+                resolvedSrc.startsWith("file://", Qt::CaseInsensitive)) {
+                finalUrl = QUrl(resolvedSrc);
+            } else if (QDir::isAbsolutePath(resolvedSrc)) {
+                QString chosenPath = resolvedSrc;
+                if (!m_imageBaseDir.trimmed().isEmpty()) {
+                    const QString fileName = QFileInfo(resolvedSrc).fileName();
+                    if (!fileName.isEmpty()) {
+                        const QString localCandidate = QDir(m_imageBaseDir).filePath(QString("asset/%1").arg(fileName));
+                        if (QFileInfo::exists(localCandidate)) {
+                            chosenPath = localCandidate;
+                        }
+                    }
+                }
+                finalUrl = QUrl::fromLocalFile(chosenPath);
+            } else if (!m_imageBaseDir.trimmed().isEmpty()) {
+                const QString absPath = QDir(m_imageBaseDir).filePath(resolvedSrc);
+                finalUrl = QUrl::fromLocalFile(absPath);
+            } else {
+                finalUrl = QUrl(resolvedSrc);
+            }
+
+            const QString imgTag = QString("<img src=\"%1\" alt=\"%2\" />")
+                .arg(finalUrl.toString().toHtmlEscaped(), altText);
+
+            html.replace(match.capturedStart(), match.capturedLength(), imgTag);
+        }
+    }
+
+    // 链接 [text](url)
+    html.replace(QRegularExpression("(?<!\\!)\\[([^\\]]+)\\]\\(([^\\)]+)\\)"), "<a href=\"\\2\">\\1</a>");
     
     // 水平分割线
     html.replace(QRegularExpression("^---+$", QRegularExpression::MultilineOption), "<hr>");
@@ -682,6 +737,14 @@ QString MarkdownRenderer::getCustomCss() const
 
 void MarkdownRenderer::setContent(const QString &markdownText)
 {
+    setContent(markdownText, QMap<QString, QString>(), QString());
+}
+
+void MarkdownRenderer::setContent(const QString &markdownText, const QMap<QString, QString> &images, const QString &imageBaseDir)
+{
+    m_images = images;
+    m_imageBaseDir = imageBaseDir;
+
     QString htmlContent = convertMarkdownToHtml(markdownText);
     QString finalHtml = m_htmlTemplate;
     finalHtml.replace("%CONTENT%", htmlContent);
@@ -745,6 +808,25 @@ void MarkdownRenderer::onLoadFinished(bool success)
     }
 }
 
+void MarkdownRenderer::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    if (!m_autoResize) {
+        return;
+    }
+
+    if (m_resizePending) {
+        return;
+    }
+    m_resizePending = true;
+
+    QTimer::singleShot(0, this, [this]() {
+        m_resizePending = false;
+        adjustSizeToContent();
+    });
+}
+
 void MarkdownRenderer::adjustSizeToContent()
 {
     if (!m_autoResize) {
@@ -771,6 +853,11 @@ void MarkdownRenderer::adjustSizeToContent()
                 
                 // 应用新的高度
                 m_webView->setFixedHeight(targetHeight);
+                setFixedHeight(targetHeight);
+                updateGeometry();
+                if (parentWidget()) {
+                    parentWidget()->updateGeometry();
+                }
                 
                 qDebug() << "Auto-resized MarkdownRenderer to height:" << targetHeight;
             }

@@ -20,6 +20,7 @@
 #include <QFrame>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QTableWidget>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -43,6 +44,7 @@ class QGroupBox;
 class QScrollArea;
 class QStackedWidget;
 class QFrame;
+class QResizeEvent;
 QT_END_NAMESPACE
 
 class ConfigManager;
@@ -62,6 +64,7 @@ public:
 
 protected:
     void showEvent(QShowEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     void onQuestionListItemClicked(QListWidgetItem *item);
@@ -73,6 +76,10 @@ private slots:
     void onChoiceCountChanged(int count);
     void onBlankCountChanged(int count);
     void onQuestionTypeChanged(const QString &type);
+    void onAddImageClicked();
+    void onRemoveImageClicked();
+    void onChooseImageClicked();
+    void onImageTableChanged(int row, int column);
 
 signals:
     void backRequested();
@@ -108,6 +115,11 @@ private:
     
     QString escapeJsonString(const QString &str);
     QString unescapeJsonString(const QString &str);
+
+    QMap<QString, QString> getImagesFromTable() const;
+    void setImagesToTable(const QMap<QString, QString> &images);
+    QString getCurrentImageBaseDir() const;
+    void adjustOptionEditHeight(QTextEdit *edit);
     
     // UI Components - Main Layout
     QSplitter *m_mainSplitter;
@@ -140,6 +152,14 @@ private:
     // Question Content Editor
     QLabel *m_questionLabel;
     QTextEdit *m_questionTextEdit;
+
+    QGroupBox *m_imageGroup;
+    QVBoxLayout *m_imageLayout;
+    QTableWidget *m_imageTable;
+    QHBoxLayout *m_imageButtonLayout;
+    QPushButton *m_addImageButton;
+    QPushButton *m_removeImageButton;
+    QPushButton *m_chooseImageButton;
     
     // Dynamic Editor Stack
     QStackedWidget *m_editorStack;
@@ -150,7 +170,7 @@ private:
     QHBoxLayout *m_choiceCountLayout;
     QLabel *m_choiceCountLabel;
     QSpinBox *m_choiceCountSpinBox;
-    QVector<QLineEdit*> m_choiceEdits;
+    QVector<QTextEdit*> m_choiceEdits;
     QLabel *m_choiceAnswerLabel;
     QComboBox *m_choiceAnswerComboBox;
     
@@ -166,7 +186,7 @@ private:
     QHBoxLayout *m_multiChoiceCountLayout;
     QLabel *m_multiChoiceCountLabel;
     QSpinBox *m_multiChoiceCountSpinBox;
-    QVector<QLineEdit*> m_multiChoiceEdits;
+    QVector<QTextEdit*> m_multiChoiceEdits;
     QLabel *m_multiChoiceAnswerLabel;
     QTextEdit *m_multiChoiceAnswerEdit;
     

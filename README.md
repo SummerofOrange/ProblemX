@@ -110,7 +110,6 @@ python convert_PTA_to_problemx.py pta_export.html -type <题目类型> -o <输�
 
 详细使用说明请参考 [PTA转换工具说明](README_PTA_Converter.md)。
 
-
 ### 从学习通生成可使用的题库
 
 1. 从学习通平台下载 HTML 格式的题库文件
@@ -121,6 +120,16 @@ python extract_xuexitong_questions.py <input_html_file> --type <题目类型> [-
 ```
 
 详细使用说明请参考 [学习通转换工具说明](README_Xuexitong_Converter.md.md)。
+
+### 升级旧版题库
+
+如果您持有 v1.0 及以前版本的 JSON 题库（`image` 字段为字符串路径），请使用以下命令将其转换为 v1.1+ 支持的新格式：
+
+```bash
+python convert_old_problembank.py <题库根目录>
+```
+
+该脚本会递归扫描目录下所有 `.json` 文件，将 `image: "path"` 自动转换为 `image: {"img1": "path"}`，并在题干末尾追加 `\n\n![](img1)` 以适配新的渲染逻辑。
 
 ## 项目结构
 
@@ -146,6 +155,7 @@ python extract_xuexitong_questions.py <input_html_file> --type <题目类型> [-
 ├── Subject/               # 题库目录
 ├── convert_Yuketang_to_problemx.py  # 雨课堂转换工具
 ├── convert_PTA_to_problemx.py  # PTA 转换工具
+├── convert_old_problembank.py  # 旧版题库升级工具
 ├── main.cpp               # 程序入口
 ├── mainwindow.*           # 主窗口
 └── ProblemX.pro           # Qt项目文件
@@ -174,14 +184,11 @@ python extract_xuexitong_questions.py <input_html_file> --type <题目类型> [-
 
 ## 更新日志
 
-### **v1.0 (latest)**
+### **v1.2 (latest)**
 
-- **新增题库编辑功能**：全新的题库编辑器，支持创建、编辑和管理各种题型的题目
-- **新增题库预览功能**：实时预览题目内容和格式，确保题目显示效果
-- **支持多题型编辑**：完整支持选择题、判断题、多选题和填空题的编辑
-- **智能题库管理**：自动识别题库文件路径，支持从配置文件中读取科目路径
-- **增强用户体验**：提供直观的编辑界面和实时预览，简化题库创建流程
-- **完善错误处理**：添加详细的调试信息和用户友好的错误提示
+- **重构图片处理逻辑**：彻底移除旧版 `image` 字段支持，统一使用对象格式和 Markdown 引用，优化渲染流程
+- **优化选择题渲染**：修复选项高度自适应问题，支持 Markdown/LaTeX，解决遮挡 bug，编辑器升级为富文本输入
+- **新增辅助工具**：提供旧题库一键升级脚本
 
 请参阅 [CHANGELOG](CHANGELOG.md) 文件以获取详细的更新日志。
 

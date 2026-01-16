@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QString>
 #include <QStringList>
+#include <QMap>
 #include "../models/question.h"
 
 /**
@@ -19,7 +20,7 @@ struct WrongAnswerItem {
     QString subject;               // 科目
     QString questionType;          // 题目类型
     QString questionText;          // 题目描述
-    QString imagePath;             // 图片路径
+    QMap<QString, QString> images;
     QStringList choices;           // 选项列表
     QString correctAnswer;         // 正确答案（单选/判断）
     QStringList correctAnswers;    // 正确答案列表（多选/填空）
