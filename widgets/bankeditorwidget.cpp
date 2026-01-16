@@ -18,6 +18,62 @@
 #include <QResizeEvent>
 #include <QTextOption>
 #include <QtMath>
+#include <QColor>
+#include <QStyledItemDelegate>
+#include <QPainter>
+#include <QAbstractItemView>
+
+class EvalListItemDelegate : public QStyledItemDelegate
+{
+public:
+    explicit EvalListItemDelegate(QObject *parent = nullptr)
+        : QStyledItemDelegate(parent)
+    {
+    }
+
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    {
+        QSize s = QStyledItemDelegate::sizeHint(option, index);
+        s.setHeight(44);
+        return s;
+    }
+
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    {
+        painter->save();
+
+        QRect r = option.rect.adjusted(2, 2, -2, -2);
+
+        QBrush bg = index.data(Qt::BackgroundRole).value<QBrush>();
+        if (bg.style() == Qt::NoBrush) {
+            bg = QBrush(Qt::white);
+        }
+
+        QColor borderColor("#e9ecef");
+        int borderWidth = 1;
+        if (option.state & QStyle::State_Selected) {
+            borderColor = QColor("#357abd");
+            borderWidth = 2;
+        } else if (option.state & QStyle::State_MouseOver) {
+            borderColor = QColor("#4A90E2");
+            borderWidth = 1;
+        }
+
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->setPen(QPen(borderColor, borderWidth));
+        painter->setBrush(bg);
+        painter->drawRoundedRect(r, 8, 8);
+
+        QString text = index.data(Qt::DisplayRole).toString();
+        painter->setPen(QColor("#2c3e50"));
+        QRect textRect = r.adjusted(12, 0, -12, 0);
+        QFontMetrics fm(option.font);
+        text = fm.elidedText(text, Qt::ElideRight, textRect.width());
+        painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, text);
+
+        painter->restore();
+    }
+};
 
 BankEditorWidget::BankEditorWidget(QWidget *parent)
     : QWidget(parent)
@@ -32,6 +88,21 @@ BankEditorWidget::BankEditorWidget(QWidget *parent)
 
 BankEditorWidget::~BankEditorWidget()
 {
+}
+
+void BankEditorWidget::openBankFile(const QString &filePath, const QString &displayTitle)
+{
+    m_bankFilePath = filePath;
+    const QString title = displayTitle.isEmpty() ? QFileInfo(filePath).completeBaseName() : displayTitle;
+    m_bankInfoLabel->setText(title.isEmpty() ? "题库编辑器" : title);
+    loadQuestions();
+}
+
+void BankEditorWidget::setQuestionEvalStates(const QVector<int> &states, const QStringList &labels)
+{
+    m_questionEvalStates = states;
+    m_questionEvalLabels = labels;
+    updateQuestionList();
 }
 
 void BankEditorWidget::setBankInfo(const QString &subject, const QString &bankType, int bankIndex)
@@ -89,8 +160,14 @@ void BankEditorWidget::setBankInfo(const QString &subject, const QString &bankTy
         bankFileName = subject; // 回退到使用科目名称
     }
     
-    // 构建题库文件路径：科目路径 + 题目类型目录 + 题库文件名.json
-    m_bankFilePath = QString("%1/%2/%3.json").arg(subjectPath).arg(bankDir).arg(bankFileName);
+    if (found && !bankInfo.src.isEmpty()) {
+        m_bankFilePath = QDir(subjectPath).filePath(bankInfo.src);
+        if (!QFileInfo::exists(m_bankFilePath) && !bankDir.isEmpty()) {
+            m_bankFilePath = QDir(subjectPath).filePath(bankDir + "/" + bankInfo.src);
+        }
+    } else {
+        m_bankFilePath = QString("%1/%2/%3.json").arg(subjectPath).arg(bankDir).arg(bankFileName);
+    }
     
     qDebug() << "BankEditorWidget::setBankInfo - Subject:" << subject << "BankType:" << bankType << "Index:" << bankIndex;
     qDebug() << "BankEditorWidget::setBankInfo - Subject path:" << subjectPath;
@@ -144,8 +221,22 @@ void BankEditorWidget::loadQuestions()
     
     qDebug() << "JSON parsed successfully, found" << dataArray.size() << "questions";
     
+    m_questionEvalStates.clear();
+    m_questionEvalLabels.clear();
     for (int i = 0; i < dataArray.size(); ++i) {
         QJsonObject questionObj = dataArray[i].toObject();
+        const QString eval = questionObj.value("_pta_eval").toString();
+        const QString label = questionObj.value("_pta_label").toString();
+        int state = 0;
+        if (eval == "Correct") {
+            state = 1;
+        } else if (eval == "Wrong") {
+            state = 2;
+        } else if (eval == "Unjudged") {
+            state = 3;
+        }
+        m_questionEvalStates.append(state);
+        m_questionEvalLabels.append(label);
         Question question(questionObj);
         m_questions.append(question);
         // qDebug() << "Loaded question" << (i+1) << "type:" << question.getType() << "question preview:" << question.getQuestion().left(50);
@@ -166,34 +257,65 @@ void BankEditorWidget::loadQuestions()
 
 void BankEditorWidget::saveQuestions()
 {
-    // 保存当前编辑的题目
-    if (m_currentQuestionIndex >= 0 && m_currentQuestionIndex < m_questions.size()) {
-        saveCurrentQuestion();
-    }
-    
-    QJsonObject root;
-    QJsonArray dataArray;
-    
-    for (const Question &question : m_questions) {
-        dataArray.append(question.toJson());
-    }
-    
-    root["data"] = dataArray;
-    
-    QJsonDocument doc(root);
-    
-    QFile file(m_bankFilePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::warning(this, "保存失败", "无法写入文件: " + m_bankFilePath);
+    if (!writeQuestionsToFile(m_bankFilePath)) {
         return;
     }
-    
-    file.write(doc.toJson());
-    file.close();
-    
     m_hasUnsavedChanges = false;
     QMessageBox::information(this, "保存成功", "题库已成功保存!");
     emit questionsSaved();
+}
+
+bool BankEditorWidget::saveQuestionsAs(const QString &filePath)
+{
+    if (!writeQuestionsToFile(filePath)) {
+        return false;
+    }
+
+    m_bankFilePath = filePath;
+    m_hasUnsavedChanges = false;
+    emit questionsSaved();
+    return true;
+}
+
+void BankEditorWidget::setEmbeddedMode(bool enabled)
+{
+    m_saveButton->setVisible(!enabled);
+    m_backButton->setVisible(!enabled);
+}
+
+bool BankEditorWidget::writeQuestionsToFile(const QString &filePath)
+{
+    if (filePath.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "保存失败", "题库文件路径为空。");
+        return false;
+    }
+
+    if (m_currentQuestionIndex >= 0 && m_currentQuestionIndex < m_questions.size()) {
+        saveCurrentQuestion();
+    }
+
+    QJsonObject root;
+    QJsonArray dataArray;
+    for (const Question &question : m_questions) {
+        dataArray.append(question.toJson());
+    }
+    root["data"] = dataArray;
+
+    const QString dirPath = QFileInfo(filePath).absolutePath();
+    if (!dirPath.isEmpty()) {
+        QDir().mkpath(dirPath);
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, "保存失败", "无法写入文件: " + filePath);
+        return false;
+    }
+
+    QJsonDocument doc(root);
+    file.write(doc.toJson(QJsonDocument::Indented));
+    file.close();
+    return true;
 }
 
 void BankEditorWidget::setupUI()
@@ -213,7 +335,12 @@ void BankEditorWidget::setupUI()
     
     // Question list
     m_questionListWidget = new QListWidget();
-    m_questionListWidget->setAlternatingRowColors(true);
+    m_questionListWidget->setAlternatingRowColors(false);
+    m_questionListWidget->setSpacing(6);
+    m_questionListWidget->setUniformItemSizes(true);
+    m_questionListWidget->setMouseTracking(true);
+    m_questionListWidget->setItemDelegate(new EvalListItemDelegate(m_questionListWidget));
+    m_questionListWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     
     // List buttons
     m_listButtonLayout = new QHBoxLayout();
@@ -695,37 +822,12 @@ void BankEditorWidget::applyStyles()
         "}"
         
         "QListWidget {"
-        "    border: 1px solid #dee2e6;"
-        "    border-radius: 8px;"
-        "    background-color: white;"
-        "    alternate-background-color: #f8f9fa;"
+        "    border: 1px solid #e5e7eb;"
+        "    border-radius: 10px;"
+        "    background-color: #ffffff;"
         "    font-size: 13px;"
+        "    padding: 6px;"
         "    outline: none;"
-        "}"
-        
-        "QListWidget::item {"
-        "    padding: 12px 8px;"
-        "    border-bottom: 1px solid #e9ecef;"
-        "    border-radius: 4px;"
-        "    margin: 2px;"
-        "    background-color: white;"
-        "}"
-        
-        "QListWidget::item:selected {"
-        "    background-color: #4A90E2;"
-        "    color: white;"
-        "    border: 2px solid #357abd;"
-        "    font-weight: bold;"
-        "}"
-        
-        "QListWidget::item:hover {"
-        "    background-color: #e3f2fd;"
-        "    border: 1px solid #4A90E2;"
-        "}"
-        
-        "QListWidget::item:selected:hover {"
-        "    background-color: #357abd;"
-        "    border: 2px solid #2968a3;"
         "}"
         
         "QPushButton {"
@@ -860,6 +962,8 @@ void BankEditorWidget::onAddQuestionClicked()
     }
     
     m_questions.append(newQuestion);
+    m_questionEvalStates.append(0);
+    m_questionEvalLabels.append(QString());
     updateQuestionList();
     
     // Select the new question
@@ -881,6 +985,12 @@ void BankEditorWidget::onDeleteQuestionClicked()
     
     if (ret == QMessageBox::Yes) {
         m_questions.removeAt(m_currentQuestionIndex);
+        if (m_currentQuestionIndex >= 0 && m_currentQuestionIndex < m_questionEvalStates.size()) {
+            m_questionEvalStates.removeAt(m_currentQuestionIndex);
+        }
+        if (m_currentQuestionIndex >= 0 && m_currentQuestionIndex < m_questionEvalLabels.size()) {
+            m_questionEvalLabels.removeAt(m_currentQuestionIndex);
+        }
         updateQuestionList();
         
         // Select next question or clear editor
@@ -1282,6 +1392,17 @@ void BankEditorWidget::updateQuestionList()
         }
         
         QListWidgetItem *item = new QListWidgetItem(QString("%1. %2 %3").arg(i + 1).arg(typeText).arg(questionText));
+        const int state = (i >= 0 && i < m_questionEvalStates.size()) ? m_questionEvalStates[i] : 0;
+        if (state == 1) {
+            item->setBackground(QColor("#eefaf2"));
+        } else if (state == 2) {
+            item->setBackground(QColor("#fdf1f2"));
+        } else if (state == 3) {
+            item->setBackground(QColor("#fff8e6"));
+        }
+        if (i >= 0 && i < m_questionEvalLabels.size() && !m_questionEvalLabels[i].trimmed().isEmpty()) {
+            item->setToolTip(m_questionEvalLabels[i].trimmed());
+        }
         m_questionListWidget->addItem(item);
     }
 }
@@ -1669,7 +1790,7 @@ QString BankEditorWidget::getCurrentImageBaseDir() const
     if (typeData == "Choice") {
         typeDir = "Choice";
     } else if (typeData == "TrueOrFalse") {
-        typeDir = "TrueOrFalse";
+        typeDir = "TrueorFalse";
     } else if (typeData == "FillBlank") {
         typeDir = "FillBlank";
     } else if (typeData == "MultipleChoice") {

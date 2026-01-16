@@ -64,16 +64,15 @@ private slots:
     void onBankEnabledChanged(bool enabled);
     void onExtractCountChanged(int count);
     void onAddSubjectClicked();
+    void onCreateSubjectClicked();
     void onRemoveSubjectClicked();
     void onRemoveBankClicked(); // 新增删除题库的槽函数
-    void onRefreshClicked();
     void onSaveClicked();
-    void onResetClicked();
-    void onImportSubjectClicked();
-    void onExportSubjectClicked();
     void onEditBankClicked();
     void onBankEditorBack();
     void onBackClicked();
+    void onCreateBankClicked();
+    void onAutoFetchBankClicked();
 
 signals:
     void backRequested();
@@ -110,10 +109,9 @@ private:
     QTreeWidget *m_subjectTree;
     QHBoxLayout *m_subjectButtonLayout;
     QPushButton *m_addSubjectButton;
+    QPushButton *m_createSubjectButton;
     QPushButton *m_removeSubjectButton;
     QPushButton *m_removeBankButton; // 新增删除题库按钮
-    QPushButton *m_importButton;
-    QPushButton *m_exportButton;
     
     // UI Components - Right Panel (Details)
     QWidget *m_rightPanel;
@@ -127,6 +125,12 @@ private:
     QLabel *m_subjectPathLabel;
     QLineEdit *m_subjectPathEdit;
     QPushButton *m_browsePathButton;
+
+    // Subject Actions Group
+    QGroupBox *m_subjectActionsGroup;
+    QHBoxLayout *m_subjectActionsLayout;
+    QPushButton *m_createBankButton;
+    QPushButton *m_autoFetchBankButton;
     
     // Bank Details Group
     QGroupBox *m_bankDetailsGroup;
@@ -157,9 +161,7 @@ private:
     
     // Bottom Buttons
     QHBoxLayout *m_bottomButtonLayout;
-    QPushButton *m_refreshButton;
     QPushButton *m_saveButton;
-    QPushButton *m_resetButton;
     QPushButton *m_backButton;
     
     // Data

@@ -6,20 +6,21 @@
 
 ## 项目概述
 
-ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮助学生高效地进行各类科目的题目练习。系统支持多种题型（选择题、多选题、判断题、填空题），提供练习模式、错题复习、进度保存等功能，并支持从雨课堂等平台导入题库。
+ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮助学生高效地进行各类科目的题目练习。系统支持多种题型（选择题、多选题、判断题、填空题），提供练习模式、错题复习、进度保存等功能，并支持从 PTA、雨课堂等平台导入题库。
 
 ## 功能特点
 
 - **多科目支持**：可自由添加和管理不同学科的题库
 - **多题型支持**：支持选择题、多选题、判断题、填空题等多种题型
+- **智能题库获取**：内置 PTA 题库抓取工具，一键解析题目、评测状态与图片
+- **本地化图片管理**：自动下载题库图片，实现题库完全离线化
+- **增强型题库编辑**：全新卡片式编辑器，支持实时预览、Markdown/LaTeX 编辑与评测状态标记
 - **Markdown渲染**：支持在题目中使用Markdown格式，包括粗体、斜体、代码块等
 - **LaTeX数学公式**：集成KaTeX引擎，支持在题目中渲染LaTeX数学公式
 - **练习模式**：随机或顺序练习，支持自定义题目数量
 - **错题管理**：自动收集错题，支持错题复习
 - **进度保存**：支持中途保存练习进度，随时可以继续上次的练习
-- **题库导入**：支持从雨课堂HTML格式导入题库
 - **统计分析**：提供练习结果统计和分析
-- **用户友好界面**：简洁直观的用户界面，操作便捷
 
 ## 安装说明
 
@@ -27,6 +28,7 @@ ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮
 
 - Qt 6.8 或更高版本
 - Qt WebEngine 模块（用于Markdown和LaTeX渲染）
+- Qt Network 模块（用于图片下载）
 - C++17 兼容的编译器
 - 支持 Windows、Linux 和 macOS 平台
 
@@ -63,101 +65,62 @@ cd ProblemX
 
 ### 题库管理
 
-最开始，你应该导入一个题库，并进行配置。
+**新建科目与题库：**
+1. 在“配置程序”界面，点击左下角的【创建科目】，输入名称即可建立新科目。
+2. 选中科目后，点击【创建题库】，输入名称并选择模板，即可快速生成题库文件。
 
-题库以文件夹的形式，应按照以下目录结构组织：
+**题库结构：**
+题库以文件夹形式组织，结构如下：
 
 ```
 科目/题型/题库.json
+科目/题型/asset/ (可选，存放图片)
 ```
 
 例如：
-
 ```
 DataStructure/Choice/U1_Choice.json
+DataStructure/Choice/asset/img1.png
 ```
 
-题型目录包括：
+### 从 PTA 平台智能获取题库（推荐）
 
-- `Choice`：选择题
-- `TrueorFalse`：判断题
-- `FillBlank`：填空题
-- `MultipleChoice`：多选题
+ProblemX v2.0 内置了强大的 PTA 题库抓取工具：
 
-### 题库格式
+1. 在“配置程序”界面选中科目，点击【自动获取题库】。
+2. 在弹出的窗口中，左侧浏览器登录 Pintia 账号并进入题目集详情页。
+3. 点击【解析当前页面的...】按钮，系统会自动抓取题目。
+4. **评测状态同步**：系统会自动识别题目是否已通过评测，用绿/红/黄颜色标记。
+5. **图片本地化**：点击【保存当前题库】，勾选“保存时下载图片”，即可将题目图片保存到本地，实现离线刷题。
 
-题库文件采用 JSON 格式，具体格式请参考 [题库格式说明](Readme_ProblemBank.md)。
+### 从雨课堂/学习通生成题库
 
-### 从雨课堂生成可使用的题库
+对于其他平台，可以使用内置的 Python 转换脚本：
 
-1. 从雨课堂下载 HTML 格式的题库文件
-2. 使用内置的转换工具转换为 ProblemX 格式：
-
-```bash
-python convert_Yuketang_to_problemx.py -i 雨课堂题库.html -o 输出目录 -name 生成的题库名称
-```
-
-详细使用说明请参考 [雨课堂转换工具说明](README_Yuketang_Converter.md)。
-
-### 从PTA生成可使用的题库
-
-1. 从PTA平台下载 HTML 格式的题库文件
-2. 使用内置的转换工具转换为 ProblemX 格式：
-
-```bash
-python convert_PTA_to_problemx.py pta_export.html -type <题目类型> -o <输出文件名>
-```
-
-详细使用说明请参考 [PTA转换工具说明](README_PTA_Converter.md)。
-
-### 从学习通生成可使用的题库
-
-1. 从学习通平台下载 HTML 格式的题库文件
-2. 使用内置的转换工具转换为 ProblemX 格式：
-
-```bash
-python extract_xuexitong_questions.py <input_html_file> --type <题目类型> [-o <输出文件名.json>]
-```
-
-详细使用说明请参考 [学习通转换工具说明](README_Xuexitong_Converter.md.md)。
+- **雨课堂**：`python convert_Yuketang_to_problemx.py ...` ([说明](README_Yuketang_Converter.md))
+- **学习通**：`python extract_xuexitong_questions.py ...` ([说明](README_Xuexitong_Converter.md.md))
+- **PTA (脚本方式)**：`python convert_PTA_to_problemx.py ...` ([说明](README_PTA_Converter.md))
 
 ### 升级旧版题库
 
-如果您持有 v1.0 及以前版本的 JSON 题库（`image` 字段为字符串路径），请使用以下命令将其转换为 v1.1+ 支持的新格式：
+如果您持有 v1.0 及以前版本的 JSON 题库，请使用以下命令升级：
 
 ```bash
 python convert_old_problembank.py <题库根目录>
 ```
 
-该脚本会递归扫描目录下所有 `.json` 文件，将 `image: "path"` 自动转换为 `image: {"img1": "path"}`，并在题干末尾追加 `\n\n![](img1)` 以适配新的渲染逻辑。
-
 ## 项目结构
 
 ```
 ├── core/                  # 核心功能模块
-│   ├── configmanager.*    # 配置管理
-│   ├── practicemanager.*  # 练习管理
-│   ├── questionmanager.*  # 题目管理
-│   └── wronganswerset.*   # 错题集管理
 ├── models/                # 数据模型
-│   ├── question.*         # 题目模型
-│   └── questionbank.*     # 题库模型
 ├── utils/                 # 工具类
-│   ├── bankscanner.*      # 题库扫描
-│   ├── jsonutils.*        # JSON处理
-│   └── markdownrenderer.* # Markdown渲染
 ├── widgets/               # 界面组件
-│   ├── startwidget.*      # 开始界面
-│   ├── configwidget.*     # 配置界面
-│   ├── practicewidget.*   # 练习界面
-│   ├── reviewwidget.*     # 复习界面
-│   └── bankeditorwidget.* # 题库编辑界面
+│   ├── bankeditorwidget.* # 增强型题库编辑器
+│   ├── ptaimportdialog.*  # PTA 智能导入窗口
+│   └── ...
 ├── Subject/               # 题库目录
-├── convert_Yuketang_to_problemx.py  # 雨课堂转换工具
-├── convert_PTA_to_problemx.py  # PTA 转换工具
-├── convert_old_problembank.py  # 旧版题库升级工具
-├── main.cpp               # 程序入口
-├── mainwindow.*           # 主窗口
+├── convert_*.py           # 转换工具脚本
 └── ProblemX.pro           # Qt项目文件
 ```
 
@@ -184,11 +147,11 @@ python convert_old_problembank.py <题库根目录>
 
 ## 更新日志
 
-### **v1.2 (latest)**
+### **v2.0 (latest)**
 
-- **重构图片处理逻辑**：彻底移除旧版 `image` 字段支持，统一使用对象格式和 Markdown 引用，优化渲染流程
-- **优化选择题渲染**：修复选项高度自适应问题，支持 Markdown/LaTeX，解决遮挡 bug，编辑器升级为富文本输入
-- **新增辅助工具**：提供旧题库一键升级脚本
+- **新增 PTA 智能题库获取**：内置浏览器一键解析、评测状态识别、图片本地化下载
+- **题库编辑器重构**：卡片式列表 UI、支持嵌入模式与任意文件读写
+- **配置体验升级**：支持直接创建科目与题库，操作更便捷
 
 请参阅 [CHANGELOG](CHANGELOG.md) 文件以获取详细的更新日志。
 

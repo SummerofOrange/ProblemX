@@ -2,6 +2,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QFile>
+#include <QFileInfo>
 #include <QDir>
 #include <QDebug>
 #include <algorithm>
@@ -100,24 +101,34 @@ QList<Question> QuestionBank::loadSelectedQuestions(const QString &subjectPath) 
 
 QList<Question> QuestionBank::loadQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank) const
 {
-    QString typeFolder;
-    switch (bank.type) {
-    case QuestionType::Choice:
-        typeFolder = "Choice";
-        break;
-    case QuestionType::TrueOrFalse:
-        typeFolder = "TrueorFalse";
-        break;
-    case QuestionType::FillBlank:
-        typeFolder = "FillBlank";
-        break;
-    default:
-        typeFolder = "Choice";
-        break;
+    QString filePath = QDir(subjectPath).filePath(bank.src);
+    if (!QFileInfo::exists(filePath)) {
+        QString typeFolder;
+        switch (bank.type) {
+        case QuestionType::Choice:
+            typeFolder = "Choice";
+            break;
+        case QuestionType::TrueOrFalse:
+            typeFolder = "TrueorFalse";
+            break;
+        case QuestionType::FillBlank:
+            typeFolder = "FillBlank";
+            break;
+        default:
+            typeFolder = "Choice";
+            break;
+        }
+        filePath = QDir(subjectPath).filePath(typeFolder + "/" + bank.src);
     }
-    
-    QString filePath = QDir(subjectPath).filePath(typeFolder + "/" + bank.src);
-    QList<Question> allQuestions = loadQuestionsFromFile(filePath);
+
+    QList<Question> loadedQuestions = loadQuestionsFromFile(filePath);
+    QList<Question> allQuestions;
+    allQuestions.reserve(loadedQuestions.size());
+    for (const auto &q : loadedQuestions) {
+        if (q.getType() == bank.type) {
+            allQuestions.append(q);
+        }
+    }
     
     // Shuffle and select specified number
     std::random_device rd;
@@ -154,9 +165,27 @@ QList<Question> QuestionBank::loadQuestionsFromFile(const QString &filePath) con
     QJsonObject root = doc.object();
     if (root.contains("data") && root["data"].isArray()) {
         QJsonArray dataArray = root["data"].toArray();
+        const QString baseDir = QFileInfo(filePath).absolutePath();
         for (const QJsonValue &value : dataArray) {
             if (value.isObject()) {
                 Question question(value.toObject());
+                if (question.hasImage()) {
+                    QMap<QString, QString> images = question.getImages();
+                    for (auto it = images.begin(); it != images.end(); ++it) {
+                        const QString p = it.value().trimmed();
+                        if (p.isEmpty()) {
+                            continue;
+                        }
+                        if (p.startsWith("http://", Qt::CaseInsensitive) ||
+                            p.startsWith("https://", Qt::CaseInsensitive) ||
+                            p.startsWith("file://", Qt::CaseInsensitive) ||
+                            QDir::isAbsolutePath(p)) {
+                            continue;
+                        }
+                        it.value() = QDir(baseDir).filePath(p);
+                    }
+                    question.setImages(images);
+                }
                 questions.append(question);
             }
         }

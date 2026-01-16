@@ -131,6 +131,20 @@ void ConfigManager::removeSubject(const QString &subject)
     }
 }
 
+void ConfigManager::refreshSubjectBanks(const QString &subject)
+{
+    if (subject.trimmed().isEmpty()) {
+        return;
+    }
+
+    const QString subjectPath = getSubjectPath(subject);
+    QuestionBank configBank = m_questionBanks.value(subject, QuestionBank(subject));
+    QuestionBank scannedBank = BankScanner::scanSubjectDirectory(subjectPath, subject);
+
+    QuestionBank mergedBank = mergeQuestionBankInfo(configBank, scannedBank, subject);
+    m_questionBanks[subject] = mergedBank;
+}
+
 QString ConfigManager::getSubjectPath(const QString &subject) const
 {
     // 如果存在存储的路径，则返回存储的路径，否则返回默认路径

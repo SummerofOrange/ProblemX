@@ -61,3 +61,5 @@ compile_commands.json
 
 # trae
 .trae/
+
+example_html/

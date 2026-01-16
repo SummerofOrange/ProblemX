@@ -1,4 +1,4 @@
-QT       += core gui webenginewidgets
+QT       += core gui webenginewidgets network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 
@@ -12,6 +12,7 @@ SOURCES += \
     widgets/practicewidget.cpp \
     widgets/reviewwidget.cpp \
     widgets/bankeditorwidget.cpp \
+    widgets/ptaimportdialog.cpp \
     core/questionmanager.cpp \
     core/configmanager.cpp \
     core/practicemanager.cpp \
@@ -29,6 +30,7 @@ HEADERS += \
     widgets/practicewidget.h \
     widgets/reviewwidget.h \
     widgets/bankeditorwidget.h \
+    widgets/ptaimportdialog.h \
     core/questionmanager.h \
     core/configmanager.h \
     core/practicemanager.h \

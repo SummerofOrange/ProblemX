@@ -1,5 +1,6 @@
 #include "configwidget.h"
 #include "bankeditorwidget.h"
+#include "ptaimportdialog.h"
 #include "../core/configmanager.h"
 #include "../models/questionbank.h"
 #include <QTreeWidget>
@@ -28,6 +29,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QInputDialog>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QRegularExpression>
 
 ConfigWidget::ConfigWidget(QWidget *parent)
     : QWidget(parent)
@@ -98,17 +104,15 @@ void ConfigWidget::setupUI()
     // Subject buttons
     m_subjectButtonLayout = new QHBoxLayout();
     m_addSubjectButton = new QPushButton("添加科目");
+    m_createSubjectButton = new QPushButton("创建科目");
     m_removeSubjectButton = new QPushButton("删除科目");
     m_removeBankButton = new QPushButton("删除题库"); // 新增删除题库按钮
-    m_importButton = new QPushButton("导入");
-    m_exportButton = new QPushButton("导出");
     
     m_subjectButtonLayout->addWidget(m_addSubjectButton);
+    m_subjectButtonLayout->addWidget(m_createSubjectButton);
     m_subjectButtonLayout->addWidget(m_removeSubjectButton);
     m_subjectButtonLayout->addWidget(m_removeBankButton); // 添加到布局
     m_subjectButtonLayout->addStretch();
-    m_subjectButtonLayout->addWidget(m_importButton);
-    m_subjectButtonLayout->addWidget(m_exportButton);
     
     m_leftLayout->addWidget(m_subjectLabel);
     m_leftLayout->addWidget(m_subjectTree);
@@ -138,6 +142,15 @@ void ConfigWidget::setupUI()
     m_subjectInfoLayout->addWidget(m_subjectPathLabel, 1, 0);
     m_subjectInfoLayout->addWidget(m_subjectPathEdit, 1, 1);
     m_subjectInfoLayout->addWidget(m_browsePathButton, 1, 2);
+
+    // Subject Actions Group
+    m_subjectActionsGroup = new QGroupBox("题库操作");
+    m_subjectActionsLayout = new QHBoxLayout(m_subjectActionsGroup);
+    m_createBankButton = new QPushButton("创建题库");
+    m_autoFetchBankButton = new QPushButton("自动获取题库");
+    m_subjectActionsLayout->addWidget(m_createBankButton);
+    m_subjectActionsLayout->addWidget(m_autoFetchBankButton);
+    m_subjectActionsLayout->addStretch();
     
     // Bank Details Group
     m_bankDetailsGroup = new QGroupBox("题库详情");
@@ -208,6 +221,7 @@ void ConfigWidget::setupUI()
     
     // Add groups to right layout
     m_rightLayout->addWidget(m_subjectInfoGroup);
+    m_rightLayout->addWidget(m_subjectActionsGroup);
     m_rightLayout->addWidget(m_bankDetailsGroup);
     m_rightLayout->addWidget(m_statisticsGroup);
     m_rightLayout->addWidget(m_descriptionGroup);
@@ -215,19 +229,16 @@ void ConfigWidget::setupUI()
     
     // 初始状态下隐藏题库详情组件
     m_bankDetailsGroup->setVisible(false);
+    m_subjectActionsGroup->setVisible(false);
     
     // Bottom buttons
     m_bottomButtonLayout = new QHBoxLayout();
-    m_refreshButton = new QPushButton("刷新");
     m_saveButton = new QPushButton("保存配置");
-    m_resetButton = new QPushButton("重置");
     m_backButton = new QPushButton("返回");
     
     m_saveButton->setObjectName("primaryButton");
     m_backButton->setObjectName("secondaryButton");
     
-    m_bottomButtonLayout->addWidget(m_refreshButton);
-    m_bottomButtonLayout->addWidget(m_resetButton);
     m_bottomButtonLayout->addStretch();
     m_bottomButtonLayout->addWidget(m_saveButton);
     m_bottomButtonLayout->addWidget(m_backButton);
@@ -278,26 +289,17 @@ void ConfigWidget::setupConnections()
     connect(m_addSubjectButton, &QPushButton::clicked,
             this, &ConfigWidget::onAddSubjectClicked);
     
+    connect(m_createSubjectButton, &QPushButton::clicked,
+            this, &ConfigWidget::onCreateSubjectClicked);
+    
     connect(m_removeSubjectButton, &QPushButton::clicked,
             this, &ConfigWidget::onRemoveSubjectClicked);
     
     connect(m_removeBankButton, &QPushButton::clicked,
             this, &ConfigWidget::onRemoveBankClicked);
     
-    connect(m_refreshButton, &QPushButton::clicked,
-            this, &ConfigWidget::onRefreshClicked);
-    
     connect(m_saveButton, &QPushButton::clicked,
             this, &ConfigWidget::onSaveClicked);
-    
-    connect(m_resetButton, &QPushButton::clicked,
-            this, &ConfigWidget::onResetClicked);
-    
-    connect(m_importButton, &QPushButton::clicked,
-            this, &ConfigWidget::onImportSubjectClicked);
-    
-    connect(m_exportButton, &QPushButton::clicked,
-            this, &ConfigWidget::onExportSubjectClicked);
     
     connect(m_editBankButton, &QPushButton::clicked,
             this, &ConfigWidget::onEditBankClicked);
@@ -307,6 +309,12 @@ void ConfigWidget::setupConnections()
     
     connect(m_backButton, &QPushButton::clicked,
             this, &ConfigWidget::onBackClicked);
+
+    connect(m_createBankButton, &QPushButton::clicked,
+            this, &ConfigWidget::onCreateBankClicked);
+
+    connect(m_autoFetchBankButton, &QPushButton::clicked,
+            this, &ConfigWidget::onAutoFetchBankClicked);
 }
 
 void ConfigWidget::applyStyles()
@@ -626,6 +634,7 @@ void ConfigWidget::onSubjectSelectionChanged()
         
         // 隐藏题库详情组件
         m_bankDetailsGroup->setVisible(false);
+        m_subjectActionsGroup->setVisible(true);
         
         // 显示科目级别的统计信息
         updateSubjectStatistics();
@@ -661,6 +670,7 @@ void ConfigWidget::onSubjectSelectionChanged()
             
             // 确保题库详情组件可见
             m_bankDetailsGroup->setVisible(true);
+            m_subjectActionsGroup->setVisible(false);
             
             qDebug() << "Selected bank:" << m_currentBank << "for subject:" << m_currentSubject;
             updateBankDetails();
@@ -1229,6 +1239,111 @@ void ConfigWidget::onAddSubjectClicked()
     }
 }
 
+void ConfigWidget::onCreateSubjectClicked()
+{
+    if (!m_configManager) {
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("创建科目");
+    dialog.setModal(true);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
+    QFormLayout *formLayout = new QFormLayout();
+
+    QLineEdit *nameEdit = new QLineEdit(&dialog);
+    QLineEdit *pathEdit = new QLineEdit(&dialog);
+    pathEdit->setText("Subject");
+
+    QWidget *pathRow = new QWidget(&dialog);
+    QHBoxLayout *pathRowLayout = new QHBoxLayout(pathRow);
+    pathRowLayout->setContentsMargins(0, 0, 0, 0);
+    QPushButton *browseButton = new QPushButton("浏览", pathRow);
+    pathRowLayout->addWidget(pathEdit);
+    pathRowLayout->addWidget(browseButton);
+
+    formLayout->addRow("科目名称:", nameEdit);
+    formLayout->addRow("保存路径:", pathRow);
+
+    mainLayout->addLayout(formLayout);
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText("创建");
+    buttons->button(QDialogButtonBox::Cancel)->setText("取消");
+    mainLayout->addWidget(buttons);
+
+    connect(browseButton, &QPushButton::clicked, &dialog, [this, pathEdit]() {
+        const QString dirPath = QFileDialog::getExistingDirectory(this, "选择保存路径", pathEdit->text().trimmed());
+        if (!dirPath.isEmpty()) {
+            pathEdit->setText(dirPath);
+        }
+    });
+
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, [&]() {
+        const QString subjectName = nameEdit->text().trimmed();
+        const QString basePath = pathEdit->text().trimmed();
+
+        if (subjectName.isEmpty()) {
+            QMessageBox::warning(&dialog, "创建失败", "科目名称不能为空。");
+            return;
+        }
+
+        if (QRegularExpression(R"([\\/:*?"<>|])").match(subjectName).hasMatch()) {
+            QMessageBox::warning(&dialog, "创建失败", "科目名称包含不允许的字符。");
+            return;
+        }
+
+        if (basePath.isEmpty()) {
+            QMessageBox::warning(&dialog, "创建失败", "保存路径不能为空。");
+            return;
+        }
+
+        if (m_configManager->hasQuestionBank(subjectName)) {
+            int ret = QMessageBox::question(&dialog, "科目已存在",
+                QString("科目 '%1' 已存在，是否覆盖其配置并重新添加？").arg(subjectName),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            if (ret != QMessageBox::Yes) {
+                return;
+            }
+        }
+
+        QDir baseDir(basePath);
+        if (!baseDir.exists()) {
+            QMessageBox::warning(&dialog, "创建失败", "保存路径不存在或无法访问。");
+            return;
+        }
+
+        if (!baseDir.mkpath(subjectName)) {
+            QMessageBox::warning(&dialog, "创建失败", "无法在保存路径下创建科目文件夹。");
+            return;
+        }
+
+        const QString subjectDirPath = baseDir.filePath(subjectName);
+        m_configManager->addSubject(subjectName, subjectDirPath);
+        m_configManager->setCurrentSubject(subjectName);
+
+        if (!m_configManager->saveConfig()) {
+            QMessageBox::warning(&dialog, "创建失败",
+                QString("科目创建成功，但配置保存失败：%1").arg(m_configManager->getLastError()));
+            return;
+        }
+
+        dialog.accept();
+
+        refreshData();
+        emit configurationChanged();
+
+        QMessageBox::information(this, "创建成功",
+            QString("科目 '%1' 已创建并导入配置。\n\n路径：%2")
+                .arg(subjectName, QDir::toNativeSeparators(subjectDirPath)));
+    });
+
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    dialog.exec();
+}
+
 void ConfigWidget::onRemoveSubjectClicked()
 {
     QTreeWidgetItem *current = m_subjectTree->currentItem();
@@ -1295,6 +1410,160 @@ void ConfigWidget::onRemoveSubjectClicked()
             .arg(subject)
             .arg(subjectPath));
     }
+}
+
+void ConfigWidget::onCreateBankClicked()
+{
+    if (!m_configManager) {
+        return;
+    }
+
+    if (m_currentSubject.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先在左侧选择一个科目。");
+        return;
+    }
+
+    const QString subjectPath = m_configManager->getSubjectPath(m_currentSubject);
+    if (subjectPath.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "创建失败", "当前科目路径为空。");
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("创建题库");
+    dialog.setModal(true);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
+    QFormLayout *formLayout = new QFormLayout();
+
+    QLineEdit *nameEdit = new QLineEdit(&dialog);
+    QComboBox *typeCombo = new QComboBox(&dialog);
+    typeCombo->addItem("选择题 (Choice)", "Choice");
+    typeCombo->addItem("判断题 (TrueorFalse)", "TrueorFalse");
+    typeCombo->addItem("填空题 (FillBlank)", "FillBlank");
+
+    formLayout->addRow("题库名称:", nameEdit);
+    formLayout->addRow("题库类型:", typeCombo);
+    mainLayout->addLayout(formLayout);
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    buttons->button(QDialogButtonBox::Ok)->setText("创建");
+    buttons->button(QDialogButtonBox::Cancel)->setText("取消");
+    mainLayout->addWidget(buttons);
+
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, [&]() {
+        const QString bankName = nameEdit->text().trimmed();
+        const QString typeStr = typeCombo->currentData().toString();
+
+        if (bankName.isEmpty()) {
+            QMessageBox::warning(&dialog, "创建失败", "题库名称不能为空。");
+            return;
+        }
+        if (QRegularExpression(R"([\\/:*?"<>|])").match(bankName).hasMatch()) {
+            QMessageBox::warning(&dialog, "创建失败", "题库名称包含不允许的字符。");
+            return;
+        }
+
+        QString typeFolder;
+        if (typeStr == "Choice") {
+            typeFolder = "Choice";
+        } else if (typeStr == "TrueorFalse") {
+            typeFolder = "TrueorFalse";
+        } else if (typeStr == "FillBlank") {
+            typeFolder = "FillBlank";
+        } else {
+            QMessageBox::warning(&dialog, "创建失败", "未知题库类型。");
+            return;
+        }
+
+        QDir subjectDir(subjectPath);
+        if (!subjectDir.exists()) {
+            QMessageBox::warning(&dialog, "创建失败", "科目路径不存在或无法访问。");
+            return;
+        }
+
+        if (!subjectDir.mkpath(typeFolder)) {
+            QMessageBox::warning(&dialog, "创建失败", "无法创建题型目录。");
+            return;
+        }
+
+        const QString filePath = subjectDir.filePath(typeFolder + "/" + bankName + ".json");
+        if (QFileInfo::exists(filePath)) {
+            int ret = QMessageBox::question(&dialog, "文件已存在",
+                QString("题库文件已存在：\n%1\n\n是否覆盖？").arg(QDir::toNativeSeparators(filePath)),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            if (ret != QMessageBox::Yes) {
+                return;
+            }
+        }
+
+        QJsonObject q;
+        q["type"] = typeStr;
+        q["question"] = QString("请在此编辑题干");
+        if (typeStr == "Choice") {
+            QJsonArray choices;
+            choices.append("A. 选项A");
+            choices.append("B. 选项B");
+            choices.append("C. 选项C");
+            choices.append("D. 选项D");
+            q["choices"] = choices;
+            q["answer"] = "A";
+        } else if (typeStr == "TrueorFalse") {
+            q["answer"] = "T";
+        } else if (typeStr == "FillBlank") {
+            q["BlankNum"] = 1;
+            QJsonArray answers;
+            answers.append("");
+            q["answer"] = answers;
+        }
+
+        QJsonObject root;
+        QJsonArray data;
+        data.append(q);
+        root["data"] = data;
+
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            QMessageBox::warning(&dialog, "创建失败", "无法写入题库文件。");
+            return;
+        }
+        QJsonDocument doc(root);
+        file.write(doc.toJson(QJsonDocument::Indented));
+        file.close();
+
+        dialog.accept();
+
+        m_configManager->refreshSubjectBanks(m_currentSubject);
+        if (!m_configManager->saveConfig()) {
+            QMessageBox::warning(this, "提示", QString("题库创建成功，但配置保存失败：%1").arg(m_configManager->getLastError()));
+        }
+
+        refreshData();
+        emit configurationChanged();
+
+        QMessageBox::information(this, "创建成功",
+            QString("题库已创建：\n%1").arg(QDir::toNativeSeparators(filePath)));
+    });
+
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    dialog.exec();
+}
+
+void ConfigWidget::onAutoFetchBankClicked()
+{
+    if (!m_configManager) {
+        return;
+    }
+    if (m_currentSubject.isEmpty()) {
+        QMessageBox::information(this, "提示", "请先在左侧选择一个科目。");
+        return;
+    }
+
+    PtaImportDialog dialog(m_configManager, m_currentSubject, this);
+    dialog.exec();
+
+    refreshData();
+    emit configurationChanged();
 }
 
 void ConfigWidget::onRemoveBankClicked()
@@ -1397,11 +1666,6 @@ void ConfigWidget::onRemoveBankClicked()
     }
 }
 
-void ConfigWidget::onRefreshClicked()
-{
-    refreshData();
-}
-
 void ConfigWidget::onSaveClicked()
 {
     if (m_configManager) {
@@ -1411,119 +1675,6 @@ void ConfigWidget::onSaveClicked()
             QMessageBox::warning(this, "保存失败", "配置保存失败");
         }
     }
-}
-
-void ConfigWidget::onResetClicked()
-{
-    int ret = QMessageBox::question(this, "确认重置", 
-        "确定要重置所有配置吗？这将清除所有设置。",
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
-    
-    if (ret == QMessageBox::Yes && m_configManager) {
-        // Reset to defaults
-        QStringList subjects = m_configManager->getAvailableSubjects();
-        for (const QString &subject : subjects) {
-            QuestionBank bank = m_configManager->getQuestionBank(subject);
-            
-            // Reset all choice banks
-            QVector<QuestionBankInfo> choiceBanks = bank.getChoiceBanks();
-            for (int i = 0; i < choiceBanks.size(); ++i) {
-                bank.setBankChosen(QuestionType::Choice, i, false);
-            }
-            
-            // Reset all true/false banks
-            QVector<QuestionBankInfo> trueOrFalseBanks = bank.getTrueOrFalseBanks();
-            for (int i = 0; i < trueOrFalseBanks.size(); ++i) {
-                bank.setBankChosen(QuestionType::TrueOrFalse, i, false);
-            }
-            
-            // Reset all fill blank banks
-            QVector<QuestionBankInfo> fillBlankBanks = bank.getFillBlankBanks();
-            for (int i = 0; i < fillBlankBanks.size(); ++i) {
-                bank.setBankChosen(QuestionType::FillBlank, i, false);
-            }
-            
-            m_configManager->setQuestionBank(subject, bank);
-        }
-        
-        refreshData();
-        emit configurationChanged();
-    }
-}
-
-void ConfigWidget::onImportSubjectClicked()
-{
-    QString dirPath = QFileDialog::getExistingDirectory(this, "选择科目文件夹", "Subject");
-    if (dirPath.isEmpty()) {
-        return;
-    }
-    
-    QDir dir(dirPath);
-    QString subjectName = dir.dirName();
-    
-    // 检查科目是否已存在
-    if (m_configManager && m_configManager->hasQuestionBank(subjectName)) {
-        int ret = QMessageBox::question(this, "科目已存在", 
-            QString("科目 '%1' 已存在，是否要重新导入？").arg(subjectName),
-            QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No);
-        if (ret != QMessageBox::Yes) {
-            return;
-        }
-    }
-    
-    // 使用BankScanner扫描科目目录
-    QuestionBank bank = BankScanner::scanSubjectDirectory(dirPath, subjectName);
-    
-    // 检查是否找到了题库文件
-    int totalBanks = bank.getChoiceBanks().size() + bank.getTrueOrFalseBanks().size() + bank.getFillBlankBanks().size();
-    if (totalBanks == 0) {
-        QString errorMsg = BankScanner::getLastError();
-        if (errorMsg.isEmpty()) {
-            errorMsg = QString("在科目文件夹 '%1' 中未找到有效的题库文件").arg(subjectName);
-        }
-        
-        QMessageBox::warning(this, "导入失败", 
-            errorMsg + "\n\n请确保文件夹包含以下子文件夹之一：\n- Choice（选择题）\n- TrueorFalse（判断题）\n- FillBlank（填空题）\n\n每个子文件夹中应包含相应的JSON题库文件。");
-        return;
-    }
-    
-    // 添加科目到配置管理器
-    if (m_configManager) {
-        m_configManager->addSubject(subjectName, dirPath);
-        m_configManager->setQuestionBank(subjectName, bank);
-        
-        // 保存配置到文件
-        if (!m_configManager->saveConfig()) {
-            QMessageBox::warning(this, "保存失败", 
-                QString("科目 '%1' 导入成功，但配置保存失败：%2")
-                .arg(subjectName)
-                .arg(m_configManager->getLastError()));
-            return;
-        }
-        
-        refreshData();
-        emit configurationChanged();
-        
-        QMessageBox::information(this, "导入成功", 
-            QString("科目 '%1' 导入成功！\n\n找到题库：\n- 选择题：%2 个\n- 判断题：%3 个\n- 填空题：%4 个\n\n配置已自动保存到 config.json")
-            .arg(subjectName)
-            .arg(bank.getChoiceBanks().size())
-            .arg(bank.getTrueOrFalseBanks().size())
-            .arg(bank.getFillBlankBanks().size()));
-    }
-}
-
-void ConfigWidget::onExportSubjectClicked()
-{
-    QString filePath = QFileDialog::getSaveFileName(this, "导出配置", "config_export.json", "JSON Files (*.json)");
-    if (filePath.isEmpty()) {
-        return;
-    }
-    
-    // TODO: Implement export functionality
-    QMessageBox::information(this, "提示", "导出功能待实现");
 }
 
 void ConfigWidget::onEditBankClicked()

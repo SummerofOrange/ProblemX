@@ -59,8 +59,12 @@ public:
     ~BankEditorWidget();
 
     void setBankInfo(const QString &subject, const QString &bankType, int bankIndex);
+    void openBankFile(const QString &filePath, const QString &displayTitle = QString());
+    void setQuestionEvalStates(const QVector<int> &states, const QStringList &labels = QStringList());
     void loadQuestions();
     void saveQuestions();
+    bool saveQuestionsAs(const QString &filePath);
+    void setEmbeddedMode(bool enabled);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -120,6 +124,7 @@ private:
     void setImagesToTable(const QMap<QString, QString> &images);
     QString getCurrentImageBaseDir() const;
     void adjustOptionEditHeight(QTextEdit *edit);
+    bool writeQuestionsToFile(const QString &filePath);
     
     // UI Components - Main Layout
     QSplitter *m_mainSplitter;
@@ -237,6 +242,8 @@ private:
     int m_currentBankIndex;
     QString m_bankFilePath;
     QVector<Question> m_questions;
+    QVector<int> m_questionEvalStates;
+    QStringList m_questionEvalLabels;
     int m_currentQuestionIndex;
     bool m_isLoading;
     bool m_hasUnsavedChanges;

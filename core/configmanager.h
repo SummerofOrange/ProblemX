@@ -47,6 +47,7 @@ public:
     QStringList getSubjects() const { return getAvailableSubjects(); }
     void addSubject(const QString &subject, const QString &path);
     void removeSubject(const QString &subject);
+    void refreshSubjectBanks(const QString &subject);
     
     // Question bank management
     QuestionBank getQuestionBank(const QString &subject) const;
