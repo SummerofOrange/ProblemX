@@ -14,6 +14,8 @@ class QWidget;
 class QVBoxLayout;
 class QHBoxLayout;
 class QCheckBox;
+class QLineEdit;
+class QToolButton;
 
 class PtaImportDialog : public QDialog
 {
@@ -22,6 +24,9 @@ class PtaImportDialog : public QDialog
 public:
     explicit PtaImportDialog(ConfigManager *configManager, const QString &subjectName, QWidget *parent = nullptr);
     ~PtaImportDialog();
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
     void parseChoice();
@@ -44,6 +49,11 @@ private:
     QSplitter *m_splitter;
     QWidget *m_leftPanel;
     QVBoxLayout *m_leftLayout;
+    QHBoxLayout *m_navLayout;
+    QToolButton *m_backButton;
+    QToolButton *m_forwardButton;
+    QToolButton *m_reloadButton;
+    QLineEdit *m_addressBar;
     QWebEngineView *m_webView;
 
     QWidget *m_rightPanel;

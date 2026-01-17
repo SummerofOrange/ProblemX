@@ -13,6 +13,9 @@
 #include <QMessageBox>
 #include <QLineEdit>
 #include <QCheckBox>
+#include <QToolButton>
+#include <QStyle>
+#include <QWebEngineHistory>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -26,6 +29,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QKeyEvent>
 
 static QString buildExtractScript(const QString &typeStr)
 {
@@ -275,6 +279,11 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     , m_splitter(nullptr)
     , m_leftPanel(nullptr)
     , m_leftLayout(nullptr)
+    , m_navLayout(nullptr)
+    , m_backButton(nullptr)
+    , m_forwardButton(nullptr)
+    , m_reloadButton(nullptr)
+    , m_addressBar(nullptr)
     , m_webView(nullptr)
     , m_rightPanel(nullptr)
     , m_rightLayout(nullptr)
@@ -299,8 +308,33 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     m_leftLayout->setContentsMargins(10, 10, 10, 10);
     m_leftLayout->setSpacing(8);
 
+    m_navLayout = new QHBoxLayout();
+    m_navLayout->setContentsMargins(0, 0, 0, 0);
+    m_navLayout->setSpacing(6);
+
+    m_backButton = new QToolButton(m_leftPanel);
+    m_backButton->setIcon(style()->standardIcon(QStyle::SP_ArrowBack));
+    m_backButton->setEnabled(false);
+
+    m_forwardButton = new QToolButton(m_leftPanel);
+    m_forwardButton->setIcon(style()->standardIcon(QStyle::SP_ArrowForward));
+    m_forwardButton->setEnabled(false);
+
+    m_reloadButton = new QToolButton(m_leftPanel);
+    m_reloadButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
+
+    m_addressBar = new QLineEdit(m_leftPanel);
+    m_addressBar->setPlaceholderText("输入网址并回车");
+
+    m_navLayout->addWidget(m_backButton);
+    m_navLayout->addWidget(m_forwardButton);
+    m_navLayout->addWidget(m_reloadButton);
+    m_navLayout->addWidget(m_addressBar, 1);
+
     m_webView = new QWebEngineView(m_leftPanel);
-    m_webView->setUrl(QUrl("https://pintia.cn/auth/login"));
+    const QUrl initialUrl("https://pintia.cn/auth/login");
+    m_addressBar->setText(initialUrl.toString());
+    m_webView->setUrl(initialUrl);
 
     m_rightPanel = new QWidget(m_splitter);
     m_rightLayout = new QVBoxLayout(m_rightPanel);
@@ -311,10 +345,17 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     m_parseChoiceButton = new QPushButton("解析当前页面的选择题", m_leftPanel);
     m_parseTrueOrFalseButton = new QPushButton("解析当前页面的判断题", m_leftPanel);
     m_parseFillBlankButton = new QPushButton("解析当前页面的填空题", m_leftPanel);
+    m_parseChoiceButton->setAutoDefault(false);
+    m_parseChoiceButton->setDefault(false);
+    m_parseTrueOrFalseButton->setAutoDefault(false);
+    m_parseTrueOrFalseButton->setDefault(false);
+    m_parseFillBlankButton->setAutoDefault(false);
+    m_parseFillBlankButton->setDefault(false);
     m_parseButtonLayout->addWidget(m_parseChoiceButton);
     m_parseButtonLayout->addWidget(m_parseTrueOrFalseButton);
     m_parseButtonLayout->addWidget(m_parseFillBlankButton);
 
+    m_leftLayout->addLayout(m_navLayout);
     m_leftLayout->addWidget(m_webView, 1);
     m_leftLayout->addLayout(m_parseButtonLayout);
 
@@ -333,6 +374,10 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     m_downloadImagesCheckBox->setChecked(true);
     m_saveButton = new QPushButton("保存当前题库", m_rightPanel);
     m_exitButton = new QPushButton("退出界面", m_rightPanel);
+    m_saveButton->setAutoDefault(false);
+    m_saveButton->setDefault(false);
+    m_exitButton->setAutoDefault(false);
+    m_exitButton->setDefault(false);
     m_bottomLayout->addWidget(m_downloadImagesCheckBox);
     m_bottomLayout->addStretch();
     m_bottomLayout->addWidget(m_saveButton);
@@ -355,12 +400,65 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     connect(m_saveButton, &QPushButton::clicked, this, &PtaImportDialog::saveCurrentBank);
     connect(m_exitButton, &QPushButton::clicked, this, &QDialog::reject);
 
+    connect(m_backButton, &QToolButton::clicked, m_webView, &QWebEngineView::back);
+    connect(m_forwardButton, &QToolButton::clicked, m_webView, &QWebEngineView::forward);
+    connect(m_reloadButton, &QToolButton::clicked, m_webView, &QWebEngineView::reload);
+
+    connect(m_addressBar, &QLineEdit::returnPressed, this, [this]() {
+        QString urlText = m_addressBar->text().trimmed();
+        if (urlText.isEmpty()) {
+            return;
+        }
+        if (!urlText.contains("://")) {
+            urlText = "https://" + urlText;
+        }
+        const QUrl url = QUrl::fromUserInput(urlText);
+        if (url.isValid()) {
+            m_webView->setUrl(url);
+        }
+    });
+
+    connect(m_webView, &QWebEngineView::urlChanged, this, [this](const QUrl &url) {
+        if (!m_addressBar->hasFocus()) {
+            m_addressBar->setText(url.toString());
+        }
+        if (m_webView->history()) {
+            m_backButton->setEnabled(m_webView->history()->canGoBack());
+            m_forwardButton->setEnabled(m_webView->history()->canGoForward());
+        }
+    });
+
+    connect(m_webView, &QWebEngineView::loadFinished, this, [this](bool) {
+        if (m_webView->history()) {
+            m_backButton->setEnabled(m_webView->history()->canGoBack());
+            m_forwardButton->setEnabled(m_webView->history()->canGoForward());
+        }
+    });
+
     logLine(QString("当前科目：%1").arg(m_subjectName));
     logLine(QString("科目路径：%1").arg(QDir::toNativeSeparators(m_subjectPath)));
 }
 
 PtaImportDialog::~PtaImportDialog()
 {
+}
+
+void PtaImportDialog::keyPressEvent(QKeyEvent *event)
+{
+    if (!event) {
+        QDialog::keyPressEvent(event);
+        return;
+    }
+
+    if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && event->modifiers() == Qt::NoModifier) {
+        QWidget *fw = focusWidget();
+        if (fw != m_addressBar) {
+            event->accept();
+            return;
+        }
+    }
+
+    QDialog::keyPressEvent(event);
 }
 
 void PtaImportDialog::logLine(const QString &line)
