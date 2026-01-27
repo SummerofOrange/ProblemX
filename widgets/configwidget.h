@@ -42,7 +42,7 @@ class QTextEdit;
 QT_END_NAMESPACE
 
 class ConfigManager;
-struct QuestionBank;
+class QuestionBank;
 class BankEditorWidget;
 
 class ConfigWidget : public QWidget

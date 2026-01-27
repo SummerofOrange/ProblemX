@@ -49,6 +49,7 @@ public:
     // Question loading
     QList<Question> loadSelectedQuestions(const QString &subjectPath, bool shuffleQuestions = true) const;
     QList<Question> loadQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank, bool shuffleQuestions = true) const;
+    QList<Question> loadAllQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank) const;
     
     // JSON serialization
     QJsonObject toJson() const;

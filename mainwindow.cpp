@@ -4,6 +4,7 @@
 #include "widgets/configwidget.h"
 #include "widgets/practicewidget.h"
 #include "widgets/reviewwidget.h"
+#include "widgets/questionassistantwidget.h"
 #include "core/configmanager.h"
 #include "core/practicemanager.h"
 #include "models/question.h"
@@ -23,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_configWidget(nullptr)
     , m_practiceWidget(nullptr)
     , m_reviewWidget(nullptr)
+    , m_questionAssistantWidget(nullptr)
     , m_configManager(nullptr)
     , m_practiceManager(nullptr)
     , m_wrongAnswerSet(nullptr)
@@ -90,12 +92,16 @@ void MainWindow::setupUI()
     m_reviewWidget->setConfigManager(m_configManager);
     m_reviewWidget->setPracticeManager(m_practiceManager);
     m_reviewWidget->setWrongAnswerSet(m_wrongAnswerSet);
+
+    m_questionAssistantWidget = new QuestionAssistantWidget();
+    m_questionAssistantWidget->setConfigManager(m_configManager);
     
     // Add widgets to stacked widget
     m_stackedWidget->addWidget(m_startWidget);
     m_stackedWidget->addWidget(m_configWidget);
     m_stackedWidget->addWidget(m_practiceWidget);
     m_stackedWidget->addWidget(m_reviewWidget);
+    m_stackedWidget->addWidget(m_questionAssistantWidget);
     
     // Set central widget
     setCentralWidget(m_centralWidget);
@@ -108,6 +114,7 @@ void MainWindow::setupConnections()
             this, &MainWindow::startPractice);
     connect(m_startWidget, &StartWidget::configureRequested, this, &MainWindow::showConfigWidget);
     connect(m_startWidget, &StartWidget::reviewWrongAnswersRequested, this, &MainWindow::showReviewWidget);
+    connect(m_startWidget, &StartWidget::assistantRequested, this, &MainWindow::showQuestionAssistantWidget);
     connect(m_startWidget, &StartWidget::resumePracticeRequested,
             this, &MainWindow::resumePractice);
     connect(m_startWidget, &StartWidget::exitRequested,
@@ -133,6 +140,9 @@ void MainWindow::setupConnections()
             this, &MainWindow::showStartWidget);
     connect(m_reviewWidget, &ReviewWidget::startReviewRequested,
             this, &MainWindow::startReview);
+
+    connect(m_questionAssistantWidget, &QuestionAssistantWidget::backRequested,
+            this, &MainWindow::showStartWidget);
     
     // Practice manager connections
     connect(m_practiceManager, &PracticeManager::practiceStarted,
@@ -166,6 +176,12 @@ void MainWindow::showReviewWidget()
     if (m_reviewWidget) {
         m_reviewWidget->loadWrongAnswers();
     }
+}
+
+void MainWindow::showQuestionAssistantWidget()
+{
+    m_stackedWidget->setCurrentWidget(m_questionAssistantWidget);
+    setWindowTitle("ProblemX - 题目助手");
 }
 
 void MainWindow::startPractice()

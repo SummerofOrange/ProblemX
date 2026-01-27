@@ -43,6 +43,7 @@ private slots:
     void onResumePracticeClicked();
     void onConfigureClicked();
     void onReviewWrongAnswersClicked();
+    void onAssistantClicked();
     void onAboutClicked();
     void onExitClicked();
 
@@ -50,6 +51,7 @@ signals:
     void startPracticeRequested();
     void configureRequested();
     void reviewWrongAnswersRequested();
+    void assistantRequested();
     void aboutRequested();
     void exitRequested();
     void resumePracticeRequested();
@@ -69,6 +71,7 @@ private:
     QPushButton *m_resumeButton;
     QPushButton *m_configButton;
     QPushButton *m_reviewButton;
+    QPushButton *m_assistantButton;
     QPushButton *m_aboutButton;
     QPushButton *m_exitButton;
     

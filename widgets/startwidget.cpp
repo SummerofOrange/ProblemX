@@ -117,6 +117,10 @@ void StartWidget::setupUI()
     m_reviewButton = new QPushButton("错题复习");
     m_reviewButton->setObjectName("secondaryButton");
     m_reviewButton->setMinimumHeight(45);
+
+    m_assistantButton = new QPushButton("题目助手");
+    m_assistantButton->setObjectName("secondaryButton");
+    m_assistantButton->setMinimumHeight(45);
     
     m_aboutButton = new QPushButton("关于程序");
     m_aboutButton->setObjectName("secondaryButton");
@@ -131,6 +135,7 @@ void StartWidget::setupUI()
     m_buttonLayout->addWidget(m_resumeButton);
     m_buttonLayout->addWidget(m_configButton);
     m_buttonLayout->addWidget(m_reviewButton);
+    m_buttonLayout->addWidget(m_assistantButton);
     m_buttonLayout->addWidget(m_aboutButton);
     m_buttonLayout->addStretch();
     m_buttonLayout->addWidget(m_exitButton);
@@ -151,6 +156,7 @@ void StartWidget::setupConnections()
     connect(m_resumeButton, &QPushButton::clicked, this, &StartWidget::resumePracticeRequested);
     connect(m_configButton, &QPushButton::clicked, this, &StartWidget::onConfigureClicked);
     connect(m_reviewButton, &QPushButton::clicked, this, &StartWidget::onReviewWrongAnswersClicked);
+    connect(m_assistantButton, &QPushButton::clicked, this, &StartWidget::onAssistantClicked);
     connect(m_aboutButton, &QPushButton::clicked, this, &StartWidget::onAboutClicked);
     connect(m_exitButton, &QPushButton::clicked, this, &StartWidget::onExitClicked);
 }
@@ -339,6 +345,11 @@ void StartWidget::onReviewWrongAnswersClicked()
     }
     
     emit reviewWrongAnswersRequested();
+}
+
+void StartWidget::onAssistantClicked()
+{
+    emit assistantRequested();
 }
 
 void StartWidget::onAboutClicked()

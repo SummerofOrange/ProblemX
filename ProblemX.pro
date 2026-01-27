@@ -13,6 +13,9 @@ SOURCES += \
     widgets/reviewwidget.cpp \
     widgets/bankeditorwidget.cpp \
     widgets/ptaimportdialog.cpp \
+    widgets/questionassistantwidget.cpp \
+    widgets/questionpreviewwidget.cpp \
+    widgets/ptaassistcontroller.cpp \
     core/questionmanager.cpp \
     core/configmanager.cpp \
     core/practicemanager.cpp \
@@ -21,7 +24,9 @@ SOURCES += \
     models/questionbank.cpp \
     utils/jsonutils.cpp \
     utils/bankscanner.cpp \
-    utils/markdownrenderer.cpp
+    utils/markdownrenderer.cpp \
+    utils/textnormalize.cpp \
+    utils/questionsearchindex.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -31,6 +36,9 @@ HEADERS += \
     widgets/reviewwidget.h \
     widgets/bankeditorwidget.h \
     widgets/ptaimportdialog.h \
+    widgets/questionassistantwidget.h \
+    widgets/questionpreviewwidget.h \
+    widgets/ptaassistcontroller.h \
     core/questionmanager.h \
     core/configmanager.h \
     core/practicemanager.h \
@@ -39,7 +47,9 @@ HEADERS += \
     models/questionbank.h \
     utils/jsonutils.h \
     utils/bankscanner.h \
-    utils/markdownrenderer.h
+    utils/markdownrenderer.h \
+    utils/textnormalize.h \
+    utils/questionsearchindex.h
 
 FORMS += \
     mainwindow.ui

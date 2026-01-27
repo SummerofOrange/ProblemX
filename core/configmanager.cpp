@@ -27,6 +27,18 @@ bool ConfigManager::loadConfig(const QString &configPath)
     } else {
         m_shuffleQuestionsEnabled = true;
     }
+
+    m_assistantSearchTopK = 5;
+    m_assistantAutoThreshold = 0.85;
+    if (config.contains("Assistant") && config.value("Assistant").isObject()) {
+        const QJsonObject assistant = config.value("Assistant").toObject();
+        if (assistant.contains("SearchTopK")) {
+            m_assistantSearchTopK = qBound(1, assistant.value("SearchTopK").toInt(5), 50);
+        }
+        if (assistant.contains("AutoThreshold")) {
+            m_assistantAutoThreshold = qBound(0.0, assistant.value("AutoThreshold").toDouble(0.85), 1.0);
+        }
+    }
     
     // Load current subject
     if (config.contains("Subject")) {
@@ -53,6 +65,11 @@ bool ConfigManager::saveConfig(const QString &configPath)
     QJsonObject config;
     config["Subject"] = m_currentSubject;
     config["ShuffleQuestions"] = m_shuffleQuestionsEnabled;
+
+    QJsonObject assistant;
+    assistant["SearchTopK"] = m_assistantSearchTopK;
+    assistant["AutoThreshold"] = m_assistantAutoThreshold;
+    config["Assistant"] = assistant;
     
     // Save question banks
     config["QuestionBank"] = questionBanksToJson();

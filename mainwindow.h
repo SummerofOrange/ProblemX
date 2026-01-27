@@ -18,6 +18,7 @@ class StartWidget;
 class ConfigWidget;
 class PracticeWidget;
 class ReviewWidget;
+class QuestionAssistantWidget;
 class ConfigManager;
 class PracticeManager;
 class WrongAnswerSet;
@@ -35,6 +36,7 @@ private slots:
     void showConfigWidget();
     void showPracticeWidget();
     void showReviewWidget();
+    void showQuestionAssistantWidget();
     void startPractice();
     void startReview(const QList<Question> &questions);
     void resumePractice();
@@ -58,6 +60,7 @@ private:
     ConfigWidget *m_configWidget;
     PracticeWidget *m_practiceWidget;
     ReviewWidget *m_reviewWidget;
+    QuestionAssistantWidget *m_questionAssistantWidget;
     
     // Managers
     ConfigManager *m_configManager;

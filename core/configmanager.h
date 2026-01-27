@@ -42,6 +42,12 @@ public:
 
     bool isShuffleQuestionsEnabled() const { return m_shuffleQuestionsEnabled; }
     void setShuffleQuestionsEnabled(bool enabled) { m_shuffleQuestionsEnabled = enabled; }
+
+    int getAssistantSearchTopK() const { return m_assistantSearchTopK; }
+    void setAssistantSearchTopK(int k) { m_assistantSearchTopK = qBound(1, k, 50); }
+
+    double getAssistantAutoThreshold() const { return m_assistantAutoThreshold; }
+    void setAssistantAutoThreshold(double v) { m_assistantAutoThreshold = qBound(0.0, v, 1.0); }
     
     // Subject management
     QString getCurrentSubject() const { return m_currentSubject; }
@@ -87,6 +93,9 @@ private:
     CheckpointData m_checkpoint;
     QString m_lastError;
     bool m_shuffleQuestionsEnabled = true;
+
+    int m_assistantSearchTopK = 5;
+    double m_assistantAutoThreshold = 0.85;
     
     void parseQuestionBanks(const QJsonObject &json);
     QJsonObject questionBanksToJson() const;

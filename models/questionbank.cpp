@@ -145,6 +145,39 @@ QList<Question> QuestionBank::loadQuestionsFromBank(const QString &subjectPath, 
     return allQuestions;
 }
 
+QList<Question> QuestionBank::loadAllQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank) const
+{
+    QString filePath = QDir(subjectPath).filePath(bank.src);
+    if (!QFileInfo::exists(filePath)) {
+        QString typeFolder;
+        switch (bank.type) {
+        case QuestionType::Choice:
+            typeFolder = "Choice";
+            break;
+        case QuestionType::TrueOrFalse:
+            typeFolder = "TrueorFalse";
+            break;
+        case QuestionType::FillBlank:
+            typeFolder = "FillBlank";
+            break;
+        default:
+            typeFolder = "Choice";
+            break;
+        }
+        filePath = QDir(subjectPath).filePath(typeFolder + "/" + bank.src);
+    }
+
+    const QList<Question> loadedQuestions = loadQuestionsFromFile(filePath);
+    QList<Question> allQuestions;
+    allQuestions.reserve(loadedQuestions.size());
+    for (const auto &q : loadedQuestions) {
+        if (q.getType() == bank.type) {
+            allQuestions.append(q);
+        }
+    }
+    return allQuestions;
+}
+
 QList<Question> QuestionBank::loadQuestionsFromFile(const QString &filePath) const
 {
     QList<Question> questions;
