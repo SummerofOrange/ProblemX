@@ -40,7 +40,7 @@ bool PracticeManager::startNewPractice(const QString &subject, ConfigManager *co
     
     QString subjectPath = configManager->getSubjectPath(subject);
     m_currentSubjectPath = subjectPath;  // 存储当前科目路径
-    if (!m_questionManager.loadQuestions(bank, subjectPath)) {
+    if (!m_questionManager.loadQuestions(bank, subjectPath, configManager->isShuffleQuestionsEnabled())) {
         qWarning() << "Failed to load questions for subject:" << subject;
         return false;
     }

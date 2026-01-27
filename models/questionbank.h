@@ -47,8 +47,8 @@ public:
     void setBankChosenNum(QuestionType type, int index, int chosenNum);
     
     // Question loading
-    QList<Question> loadSelectedQuestions(const QString &subjectPath) const;
-    QList<Question> loadQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank) const;
+    QList<Question> loadSelectedQuestions(const QString &subjectPath, bool shuffleQuestions = true) const;
+    QList<Question> loadQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank, bool shuffleQuestions = true) const;
     
     // JSON serialization
     QJsonObject toJson() const;

@@ -21,6 +21,12 @@ bool ConfigManager::loadConfig(const QString &configPath)
         m_lastError = JsonUtils::getLastError();
         return false;
     }
+
+    if (config.contains("ShuffleQuestions")) {
+        m_shuffleQuestionsEnabled = config["ShuffleQuestions"].toBool(true);
+    } else {
+        m_shuffleQuestionsEnabled = true;
+    }
     
     // Load current subject
     if (config.contains("Subject")) {
@@ -46,6 +52,7 @@ bool ConfigManager::saveConfig(const QString &configPath)
     
     QJsonObject config;
     config["Subject"] = m_currentSubject;
+    config["ShuffleQuestions"] = m_shuffleQuestionsEnabled;
     
     // Save question banks
     config["QuestionBank"] = questionBanksToJson();
@@ -178,6 +185,7 @@ void ConfigManager::createDefaultConfig()
     m_questionBanks.clear();
     m_subjectPaths.clear();
     m_checkpoint = CheckpointData();
+    m_shuffleQuestionsEnabled = true;
     
     // 检查Subject目录下是否有可用的科目
     QDir subjectDir("Subject");

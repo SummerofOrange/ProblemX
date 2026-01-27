@@ -16,7 +16,7 @@ public:
     explicit QuestionManager(QObject *parent = nullptr);
     
     // Question loading
-    bool loadQuestions(const QuestionBank &bank, const QString &subjectPath);
+    bool loadQuestions(const QuestionBank &bank, const QString &subjectPath, bool shuffleQuestions = true);
     bool loadQuestionsFromFiles(const QStringList &filePaths);
     void setQuestions(const QList<Question> &questions);
     

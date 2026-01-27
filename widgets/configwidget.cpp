@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QSpinBox>
 #include <QCheckBox>
+#include <QSlider>
 #include <QGroupBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -34,6 +35,7 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 
 ConfigWidget::ConfigWidget(QWidget *parent)
     : QWidget(parent)
@@ -67,6 +69,9 @@ void ConfigWidget::refreshData()
     m_isLoading = true;
     loadSubjects();
     updateStatistics();
+    if (m_shuffleQuestionsCheckBox) {
+        m_shuffleQuestionsCheckBox->setChecked(m_configManager->isShuffleQuestionsEnabled());
+    }
     m_isLoading = false;
 }
 
@@ -161,27 +166,37 @@ void ConfigWidget::setupUI()
     m_totalQuestionsLabel = new QLabel("题目总数: --");
     m_bankStatusLabel = new QLabel("状态: --");
     
-    m_enableBankCheckBox = new QCheckBox("启用此题库");
-    
     m_extractCountLabel = new QLabel("抽取数量:");
     m_extractCountSpinBox = new QSpinBox();
     m_extractCountSpinBox->setMinimum(1);
     m_extractCountSpinBox->setMaximum(9999);
+    m_extractCountSpinBox->setMinimumWidth(110);
+    m_extractCountSpinBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     m_extractPercentLabel = new QLabel("(0%)");
+    m_extractCountSlider = new QSlider(Qt::Horizontal);
+    m_extractCountSlider->setMinimum(1);
+    m_extractCountSlider->setMaximum(9999);
+    m_extractCountSlider->setValue(1);
+    m_extractCountSlider->setEnabled(false);
+    m_extractCountSlider->setMaximumWidth(550);
+    m_extractCountSlider->setMinimumWidth(450);
+    m_extractPercentLabel->setVisible(false);
     
     m_bankDetailsLayout->addWidget(m_bankNameLabel, 0, 0, 1, 3);
     m_bankDetailsLayout->addWidget(m_bankTypeLabel, 1, 0, 1, 3);
     m_bankDetailsLayout->addWidget(m_totalQuestionsLabel, 2, 0, 1, 3);
     m_bankDetailsLayout->addWidget(m_bankStatusLabel, 3, 0, 1, 3);
-    m_bankDetailsLayout->addWidget(m_enableBankCheckBox, 4, 0, 1, 3);
-    m_bankDetailsLayout->addWidget(m_extractCountLabel, 5, 0);
-    m_bankDetailsLayout->addWidget(m_extractCountSpinBox, 5, 1);
-    m_bankDetailsLayout->addWidget(m_extractPercentLabel, 5, 2);
+
+    QHBoxLayout *extractCountRowLayout = new QHBoxLayout();
+    extractCountRowLayout->addWidget(m_extractCountLabel);
+    extractCountRowLayout->addWidget(m_extractCountSlider);
+    extractCountRowLayout->addWidget(m_extractCountSpinBox);
+    m_bankDetailsLayout->addLayout(extractCountRowLayout, 4, 0, 1, 3);
     
     // Add edit bank button
     m_editBankButton = new QPushButton("编辑题库");
     m_editBankButton->setObjectName("editBankButton");
-    m_bankDetailsLayout->addWidget(m_editBankButton, 6, 0, 1, 3);
+    m_bankDetailsLayout->addWidget(m_editBankButton, 5, 0, 1, 3);
     
     // Statistics Group
     m_statisticsGroup = new QGroupBox("统计信息");
@@ -191,6 +206,7 @@ void ConfigWidget::setupUI()
     m_totalBanksLabel = new QLabel("总题库数: 0");
     m_enabledBanksLabel = new QLabel("已启用: 0");
     m_statisticsQuestionsLabel = new QLabel("总题目数: 0");
+    m_shuffleQuestionsCheckBox = new QCheckBox("乱序题目");
     
     m_configProgressBar = new QProgressBar();
     m_configProgressBar->setTextVisible(true);
@@ -200,7 +216,8 @@ void ConfigWidget::setupUI()
     m_statisticsLayout->addWidget(m_totalBanksLabel, 0, 1);
     m_statisticsLayout->addWidget(m_enabledBanksLabel, 1, 0);
     m_statisticsLayout->addWidget(m_statisticsQuestionsLabel, 1, 1);
-    m_statisticsLayout->addWidget(m_configProgressBar, 2, 0, 1, 2);
+    m_statisticsLayout->addWidget(m_shuffleQuestionsCheckBox, 2, 0, 1, 2);
+    m_statisticsLayout->addWidget(m_configProgressBar, 3, 0, 1, 2);
     
     // Description Group
     m_descriptionGroup = new QGroupBox("说明");
@@ -279,12 +296,37 @@ void ConfigWidget::setupConnections()
     // 添加题库选择变化的信号连接 - 也连接到onSubjectSelectionChanged
     connect(m_subjectTree, &QTreeWidget::itemClicked,
             this, &ConfigWidget::onSubjectSelectionChanged);
-    
-    connect(m_enableBankCheckBox, &QCheckBox::toggled,
-            this, &ConfigWidget::onBankEnabledChanged);
+
+    connect(m_subjectTree, &QTreeWidget::itemChanged,
+            this, &ConfigWidget::onBankCheckStateChanged);
     
     connect(m_extractCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &ConfigWidget::onExtractCountChanged);
+
+    connect(m_extractCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, [this](int value) {
+                if (!m_extractCountSlider) {
+                    return;
+                }
+                if (m_extractCountSlider->value() == value) {
+                    return;
+                }
+                const QSignalBlocker blocker(m_extractCountSlider);
+                m_extractCountSlider->setValue(value);
+            });
+
+    connect(m_extractCountSlider, &QSlider::valueChanged,
+            this, [this](int value) {
+                if (!m_extractCountSpinBox) {
+                    return;
+                }
+                if (m_extractCountSpinBox->value() == value) {
+                    return;
+                }
+                const QSignalBlocker blocker(m_extractCountSpinBox);
+                m_extractCountSpinBox->setValue(value);
+                onExtractCountChanged(value);
+            });
     
     connect(m_addSubjectButton, &QPushButton::clicked,
             this, &ConfigWidget::onAddSubjectClicked);
@@ -315,6 +357,16 @@ void ConfigWidget::setupConnections()
 
     connect(m_autoFetchBankButton, &QPushButton::clicked,
             this, &ConfigWidget::onAutoFetchBankClicked);
+
+    connect(m_shuffleQuestionsCheckBox, &QCheckBox::toggled,
+            this, [this](bool enabled) {
+                if (m_isLoading || !m_configManager) {
+                    return;
+                }
+                m_configManager->setShuffleQuestionsEnabled(enabled);
+                m_configManager->saveConfig();
+                emit configurationChanged();
+            });
 }
 
 void ConfigWidget::applyStyles()
@@ -521,6 +573,8 @@ void ConfigWidget::loadSubjects()
                 bankItem->setText(2, QString::number(bankInfo.size));
                 bankItem->setData(0, Qt::UserRole, "bank");
                 bankItem->setData(0, Qt::UserRole + 1, QString("choice_%1").arg(i));
+                bankItem->setFlags(bankItem->flags() | Qt::ItemIsUserCheckable);
+                bankItem->setCheckState(0, bankInfo.chosen ? Qt::Checked : Qt::Unchecked);
                 setItemIcon(bankItem, "bank");
                 
                 if (bankInfo.chosen) {
@@ -543,6 +597,8 @@ void ConfigWidget::loadSubjects()
                 bankItem->setText(2, QString::number(bankInfo.size));
                 bankItem->setData(0, Qt::UserRole, "bank");
                 bankItem->setData(0, Qt::UserRole + 1, QString("trueorfalse_%1").arg(i));
+                bankItem->setFlags(bankItem->flags() | Qt::ItemIsUserCheckable);
+                bankItem->setCheckState(0, bankInfo.chosen ? Qt::Checked : Qt::Unchecked);
                 setItemIcon(bankItem, "bank");
                 
                 if (bankInfo.chosen) {
@@ -565,6 +621,8 @@ void ConfigWidget::loadSubjects()
                 bankItem->setText(2, QString::number(bankInfo.size));
                 bankItem->setData(0, Qt::UserRole, "bank");
                 bankItem->setData(0, Qt::UserRole + 1, QString("fillblank_%1").arg(i));
+                bankItem->setFlags(bankItem->flags() | Qt::ItemIsUserCheckable);
+                bankItem->setCheckState(0, bankInfo.chosen ? Qt::Checked : Qt::Unchecked);
                 setItemIcon(bankItem, "bank");
                 
                 if (bankInfo.chosen) {
@@ -696,10 +754,10 @@ void ConfigWidget::clearBankDetails()
     m_bankTypeLabel->setText("题库类型: --");
     m_totalQuestionsLabel->setText("题目总数: --");
     m_bankStatusLabel->setText("状态: --");
-    m_enableBankCheckBox->setChecked(false);
-    m_enableBankCheckBox->setEnabled(false);
     m_extractCountSpinBox->setValue(1);
     m_extractCountSpinBox->setEnabled(false);
+    m_extractCountSlider->setValue(1);
+    m_extractCountSlider->setEnabled(false);
     m_extractPercentLabel->setText("(0%)");
 }
 
@@ -793,10 +851,16 @@ void ConfigWidget::updateBankDetails()
         m_bankStatusLabel->setText(QString("状态: %1").arg("错误"));
         
         // 禁用控件
-        m_enableBankCheckBox->setChecked(false);
-        m_enableBankCheckBox->setEnabled(false);
-        m_extractCountSpinBox->setValue(0);
-        m_extractCountSpinBox->setEnabled(false);
+        {
+            const QSignalBlocker spinBlocker(m_extractCountSpinBox);
+            m_extractCountSpinBox->setValue(0);
+            m_extractCountSpinBox->setEnabled(false);
+        }
+        {
+            const QSignalBlocker sliderBlocker(m_extractCountSlider);
+            m_extractCountSlider->setValue(0);
+            m_extractCountSlider->setEnabled(false);
+        }
         m_extractPercentLabel->setText("(0%)");
         
         // 显示错误提示
@@ -885,10 +949,16 @@ void ConfigWidget::updateBankDetails()
         m_bankStatusLabel->setText(QString("状态: %1").arg("未找到"));
         
         // 禁用控件
-        m_enableBankCheckBox->setChecked(false);
-        m_enableBankCheckBox->setEnabled(false);
-        m_extractCountSpinBox->setValue(0);
-        m_extractCountSpinBox->setEnabled(false);
+        {
+            const QSignalBlocker spinBlocker(m_extractCountSpinBox);
+            m_extractCountSpinBox->setValue(0);
+            m_extractCountSpinBox->setEnabled(false);
+        }
+        {
+            const QSignalBlocker sliderBlocker(m_extractCountSlider);
+            m_extractCountSlider->setValue(0);
+            m_extractCountSlider->setEnabled(false);
+        }
         m_extractPercentLabel->setText("(0%)");
         
         return;
@@ -912,20 +982,25 @@ void ConfigWidget::updateBankDetails()
     
     qDebug() << "UI Updated:" << nameText << typeText << sizeText << statusText;
     
-    // Setup enable checkbox
-    m_enableBankCheckBox->setChecked(bankInfo.chosen);
-    m_enableBankCheckBox->setEnabled(true);
-    qDebug() << "Checkbox set to:" << bankInfo.chosen;
-    
     // Setup extract count
     int minValue = 1;
     int maxValue = qMax(1, bankInfo.size);
     int currentValue = qMax(1, bankInfo.chosennum);
     
-    m_extractCountSpinBox->setMinimum(minValue);
-    m_extractCountSpinBox->setMaximum(maxValue);
-    m_extractCountSpinBox->setValue(currentValue);
-    m_extractCountSpinBox->setEnabled(bankInfo.chosen);
+    {
+        const QSignalBlocker spinBlocker(m_extractCountSpinBox);
+        m_extractCountSpinBox->setMinimum(minValue);
+        m_extractCountSpinBox->setMaximum(maxValue);
+        m_extractCountSpinBox->setValue(currentValue);
+        m_extractCountSpinBox->setEnabled(bankInfo.chosen);
+    }
+    {
+        const QSignalBlocker sliderBlocker(m_extractCountSlider);
+        m_extractCountSlider->setMinimum(minValue);
+        m_extractCountSlider->setMaximum(maxValue);
+        m_extractCountSlider->setValue(currentValue);
+        m_extractCountSlider->setEnabled(bankInfo.chosen);
+    }
     
     qDebug() << "SpinBox range:" << minValue << "to" << maxValue << "value:" << currentValue << "enabled:" << bankInfo.chosen;
     
@@ -941,63 +1016,66 @@ void ConfigWidget::updateBankDetails()
     qDebug() << "Bank details group visibility:" << m_bankDetailsGroup->isVisible();
 }
 
-void ConfigWidget::onBankEnabledChanged(bool enabled)
+void ConfigWidget::onBankCheckStateChanged(QTreeWidgetItem *item, int column)
 {
-    if (m_isLoading || !m_configManager || m_currentSubject.isEmpty() || m_currentBank.isEmpty()) {
+    if (m_isLoading || !m_configManager || !item || column != 0) {
         return;
     }
-    
-    qDebug() << "onBankEnabledChanged:" << enabled << "for bank:" << m_currentBank;
-    
-    // 使用cleanSubjectName方法处理科目名称
-    QString cleanedSubject = cleanSubjectName(m_currentSubject);
-    qDebug() << "onBankEnabledChanged - Raw subject:" << m_currentSubject << "Cleaned subject:" << cleanedSubject;
-    
-    QuestionBank bank = m_configManager->getQuestionBank(cleanedSubject);
-    qDebug() << "Retrieved bank for subject:" << cleanedSubject;
-    qDebug() << "Bank has choice banks:" << bank.getChoiceBanks().size();
-    qDebug() << "Bank has trueorfalse banks:" << bank.getTrueOrFalseBanks().size();
-    qDebug() << "Bank has fillblank banks:" << bank.getFillBlankBanks().size();
-    
-    // Parse bank identifier
-    QStringList parts = m_currentBank.split("_");
-    if (parts.size() >= 2) {
-        QString bankType = parts[0];
-        int bankIndex = parts[1].toInt();
-        
-        if (bankType == "choice") {
-            bank.setBankChosen(QuestionType::Choice, bankIndex, enabled);
-        } else if (bankType == "trueorfalse") {
-            bank.setBankChosen(QuestionType::TrueOrFalse, bankIndex, enabled);
-        } else if (bankType == "fillblank") {
-            bank.setBankChosen(QuestionType::FillBlank, bankIndex, enabled);
-        }
-        
-        // 更新配置管理器中的数据
-        m_configManager->setQuestionBank(cleanedSubject, bank);
-        
-        // 自动保存配置到文件
-        m_configManager->saveConfig();
-        
-        // 更新UI状态
-        m_extractCountSpinBox->setEnabled(enabled);
-        m_bankStatusLabel->setText(QString("状态: %1").arg(enabled ? "已启用" : "未启用"));
-        
-        // Update tree item
-        QTreeWidgetItem *current = m_subjectTree->currentItem();
-        if (current) {
-            current->setText(1, enabled ? "已启用" : "未启用");
-        }
-        
-        // 更新父节点的统计信息
-        QTreeWidgetItem *parent = current ? current->parent() : nullptr;
-        if (parent) {
-            updateSubjectItemStatistics(parent);
-        }
-        
-        updateStatistics();
-        emit configurationChanged();
+
+    QString itemType = item->data(0, Qt::UserRole).toString();
+    if (itemType != "bank") {
+        return;
     }
+
+    QTreeWidgetItem *parent = item->parent();
+    if (!parent) {
+        return;
+    }
+
+    const bool enabled = item->checkState(0) == Qt::Checked;
+    const QString rawSubjectName = parent->text(0);
+    const QString cleanedSubject = cleanSubjectName(rawSubjectName);
+    const QString bankIdentifier = item->data(0, Qt::UserRole + 1).toString();
+
+    if (cleanedSubject.isEmpty() || bankIdentifier.isEmpty()) {
+        return;
+    }
+
+    QuestionBank bank = m_configManager->getQuestionBank(cleanedSubject);
+
+    QStringList parts = bankIdentifier.split("_");
+    if (parts.size() < 2) {
+        return;
+    }
+
+    const QString bankType = parts[0];
+    const int bankIndex = parts[1].toInt();
+
+    if (bankType == "choice") {
+        bank.setBankChosen(QuestionType::Choice, bankIndex, enabled);
+    } else if (bankType == "trueorfalse") {
+        bank.setBankChosen(QuestionType::TrueOrFalse, bankIndex, enabled);
+    } else if (bankType == "fillblank") {
+        bank.setBankChosen(QuestionType::FillBlank, bankIndex, enabled);
+    } else {
+        return;
+    }
+
+    m_configManager->setQuestionBank(cleanedSubject, bank);
+    m_configManager->saveConfig();
+
+    item->setText(1, enabled ? "已启用" : "未启用");
+
+    updateSubjectItemStatistics(parent);
+    updateStatistics();
+
+    if (m_subjectTree->currentItem() == item) {
+        m_extractCountSpinBox->setEnabled(enabled);
+        m_extractCountSlider->setEnabled(enabled);
+        m_bankStatusLabel->setText(QString("状态: %1").arg(enabled ? "已启用" : "未启用"));
+    }
+
+    emit configurationChanged();
 }
 
 void ConfigWidget::updateSubjectItemStatistics(QTreeWidgetItem *subjectItem)
@@ -1006,7 +1084,7 @@ void ConfigWidget::updateSubjectItemStatistics(QTreeWidgetItem *subjectItem)
         return;
     }
     
-    QString subjectName = subjectItem->text(0);
+    QString subjectName = cleanSubjectName(subjectItem->text(0));
     QuestionBank bank = m_configManager->getQuestionBank(subjectName);
     
     int totalQuestions = 0;
@@ -1057,6 +1135,11 @@ void ConfigWidget::onExtractCountChanged(int count)
 {
     if (m_isLoading || !m_configManager || m_currentSubject.isEmpty() || m_currentBank.isEmpty()) {
         return;
+    }
+
+    if (m_extractCountSlider && m_extractCountSlider->value() != count) {
+        const QSignalBlocker blocker(m_extractCountSlider);
+        m_extractCountSlider->setValue(count);
     }
     
     qDebug() << "onExtractCountChanged:" << count << "for bank:" << m_currentBank;
@@ -1384,10 +1467,10 @@ void ConfigWidget::onRemoveSubjectClicked()
             m_bankTypeLabel->setText("题库类型: --");
             m_totalQuestionsLabel->setText("题目总数: --");
             m_bankStatusLabel->setText("状态: --");
-            m_enableBankCheckBox->setChecked(false);
-            m_enableBankCheckBox->setEnabled(false);
             m_extractCountSpinBox->setValue(1);
             m_extractCountSpinBox->setEnabled(false);
+            m_extractCountSlider->setValue(1);
+            m_extractCountSlider->setEnabled(false);
             m_extractPercentLabel->setText("(0%)");
         }
         

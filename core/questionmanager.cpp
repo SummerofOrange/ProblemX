@@ -10,9 +10,9 @@ QuestionManager::QuestionManager(QObject *parent)
 {
 }
 
-bool QuestionManager::loadQuestions(const QuestionBank &bank, const QString &subjectPath)
+bool QuestionManager::loadQuestions(const QuestionBank &bank, const QString &subjectPath, bool shuffleQuestions)
 {
-    m_questions = bank.loadSelectedQuestions(subjectPath);
+    m_questions = bank.loadSelectedQuestions(subjectPath, shuffleQuestions);
     initializeAnswerTracking();
     
     if (!m_questions.isEmpty()) {

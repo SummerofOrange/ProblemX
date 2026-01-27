@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QSpinBox>
 #include <QCheckBox>
+#include <QSlider>
 #include <QGroupBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -61,7 +62,7 @@ protected:
 private slots:
     void onSubjectSelectionChanged();
     void onBankSelectionChanged();
-    void onBankEnabledChanged(bool enabled);
+    void onBankCheckStateChanged(QTreeWidgetItem *item, int column);
     void onExtractCountChanged(int count);
     void onAddSubjectClicked();
     void onCreateSubjectClicked();
@@ -139,9 +140,9 @@ private:
     QLabel *m_bankTypeLabel;
     QLabel *m_totalQuestionsLabel;
     QLabel *m_bankStatusLabel;
-    QCheckBox *m_enableBankCheckBox;
     QLabel *m_extractCountLabel;
     QSpinBox *m_extractCountSpinBox;
+    QSlider *m_extractCountSlider;
     QLabel *m_extractPercentLabel;
     QPushButton *m_editBankButton;
     
@@ -152,6 +153,7 @@ private:
     QLabel *m_totalBanksLabel;
     QLabel *m_enabledBanksLabel;
     QLabel *m_statisticsQuestionsLabel;
+    QCheckBox *m_shuffleQuestionsCheckBox;
     QProgressBar *m_configProgressBar;
     
     // Description Group

@@ -65,41 +65,42 @@ void QuestionBank::setBankChosenNum(QuestionType type, int index, int chosenNum)
     }
 }
 
-QList<Question> QuestionBank::loadSelectedQuestions(const QString &subjectPath) const
+QList<Question> QuestionBank::loadSelectedQuestions(const QString &subjectPath, bool shuffleQuestions) const
 {
     QList<Question> allQuestions;
     
     // Load from all selected banks
     for (const auto& bank : m_choiceBanks) {
         if (bank.chosen) {
-            auto questions = loadQuestionsFromBank(subjectPath, bank);
+            auto questions = loadQuestionsFromBank(subjectPath, bank, shuffleQuestions);
             allQuestions.append(questions);
         }
     }
     
     for (const auto& bank : m_trueOrFalseBanks) {
         if (bank.chosen) {
-            auto questions = loadQuestionsFromBank(subjectPath, bank);
+            auto questions = loadQuestionsFromBank(subjectPath, bank, shuffleQuestions);
             allQuestions.append(questions);
         }
     }
     
     for (const auto& bank : m_fillBlankBanks) {
         if (bank.chosen) {
-            auto questions = loadQuestionsFromBank(subjectPath, bank);
+            auto questions = loadQuestionsFromBank(subjectPath, bank, shuffleQuestions);
             allQuestions.append(questions);
         }
     }
     
-    // Shuffle all questions
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(allQuestions.begin(), allQuestions.end(), g);
+    if (shuffleQuestions) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(allQuestions.begin(), allQuestions.end(), g);
+    }
     
     return allQuestions;
 }
 
-QList<Question> QuestionBank::loadQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank) const
+QList<Question> QuestionBank::loadQuestionsFromBank(const QString &subjectPath, const QuestionBankInfo &bank, bool shuffleQuestions) const
 {
     QString filePath = QDir(subjectPath).filePath(bank.src);
     if (!QFileInfo::exists(filePath)) {
@@ -130,10 +131,11 @@ QList<Question> QuestionBank::loadQuestionsFromBank(const QString &subjectPath, 
         }
     }
     
-    // Shuffle and select specified number
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(allQuestions.begin(), allQuestions.end(), g);
+    if (shuffleQuestions) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(allQuestions.begin(), allQuestions.end(), g);
+    }
     
     int numToSelect = qMin(bank.chosennum, allQuestions.size());
     if (numToSelect > 0) {

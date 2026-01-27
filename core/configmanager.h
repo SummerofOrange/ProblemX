@@ -39,6 +39,9 @@ public:
     // Configuration file management
     bool loadConfig(const QString &configPath = "config.json");
     bool saveConfig(const QString &configPath = "config.json");
+
+    bool isShuffleQuestionsEnabled() const { return m_shuffleQuestionsEnabled; }
+    void setShuffleQuestionsEnabled(bool enabled) { m_shuffleQuestionsEnabled = enabled; }
     
     // Subject management
     QString getCurrentSubject() const { return m_currentSubject; }
@@ -83,6 +86,7 @@ private:
     QMap<QString, QString> m_subjectPaths; // 存储科目名称到科目路径的映射
     CheckpointData m_checkpoint;
     QString m_lastError;
+    bool m_shuffleQuestionsEnabled = true;
     
     void parseQuestionBanks(const QJsonObject &json);
     QJsonObject questionBanksToJson() const;
