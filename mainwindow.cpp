@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Set window properties
     setWindowTitle("ProblemX - 练习系统");
     setMinimumSize(1000, 700);
-    resize(1200, 800);
+    resize(1400, 900);
     
     initializeManagers();
     setupUI();

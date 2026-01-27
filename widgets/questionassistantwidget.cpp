@@ -12,6 +12,8 @@
 #include <QPlainTextEdit>
 #include <QSpinBox>
 #include <QListWidget>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
 #include <QSplitter>
 #include <QMessageBox>
 #include <QWebEngineView>
@@ -28,6 +30,9 @@
 #include <QTimer>
 #include <QFileDialog>
 #include <QFile>
+#include <QTextEdit>
+#include <QDateTime>
+#include <QHeaderView>
 
 QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     : QWidget(parent)
@@ -44,8 +49,8 @@ QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     , m_queryEdit(nullptr)
     , m_topKSpinBox(nullptr)
     , m_searchButton(nullptr)
-    , m_rebuildIndexButton(nullptr)
-    , m_resultsList(nullptr)
+    // , m_rebuildIndexButton(nullptr) // Removed
+    , m_resultsTree(nullptr)
     , m_previewWidget(nullptr)
     , m_ptaController(new PtaAssistController(this))
     , m_ptaWebView(nullptr)
@@ -59,11 +64,12 @@ QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     , m_ptaStopAutoButton(nullptr)
     , m_ptaExportNewButton(nullptr)
     , m_ptaQuestionList(nullptr)
+    , m_logEdit(nullptr)
     , m_ptaPageTipLabel(nullptr)
     , m_ptaCurrentQuestionPreview(nullptr)
     , m_ptaTopKSpinBox(nullptr)
     , m_ptaSearchButton(nullptr)
-    , m_ptaSearchResults(nullptr)
+    , m_ptaResultsTree(nullptr)
     , m_ptaFillButton(nullptr)
     , m_ptaSelectedBankPreview(nullptr)
 {
@@ -184,26 +190,47 @@ void QuestionAssistantWidget::setupSearchTab()
     m_topKSpinBox = new QSpinBox(left);
     m_topKSpinBox->setRange(1, 50);
     m_topKSpinBox->setValue(5);
+    m_topKSpinBox->setMinimumWidth(80);
 
     m_searchButton = new QPushButton("搜题", left);
     m_searchButton->setAutoDefault(false);
     m_searchButton->setDefault(false);
 
-    m_rebuildIndexButton = new QPushButton("重新加载题库", left);
-    m_rebuildIndexButton->setAutoDefault(false);
-    m_rebuildIndexButton->setDefault(false);
+    // Removed Rebuild Index Button
 
     ctrl->addWidget(kLabel);
     ctrl->addWidget(m_topKSpinBox);
     ctrl->addStretch();
-    ctrl->addWidget(m_rebuildIndexButton);
+    // ctrl->addWidget(m_rebuildIndexButton);
     ctrl->addWidget(m_searchButton);
 
-    m_resultsList = new QListWidget(left);
+    m_resultsTree = new QTreeWidget(left);
+    m_resultsTree->setHeaderLabels(QStringList() << "题型" << "科目" << "题库" << "来源" << "相似度");
+    m_resultsTree->setAlternatingRowColors(true);
+    m_resultsTree->setRootIsDecorated(false);
+    m_resultsTree->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_resultsTree->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_resultsTree->header()->setSectionResizeMode(QHeaderView::Interactive);
+    m_resultsTree->header()->resizeSection(0, 60);  // 题型
+    m_resultsTree->header()->resizeSection(1, 80);  // 科目
+    m_resultsTree->header()->resizeSection(2, 120); // 题库
+    m_resultsTree->header()->resizeSection(3, 120); // 来源
+    // 相似度 auto
+
+    // QSS Styling for Search Tab
+    left->setStyleSheet(
+        "QTreeWidget { border: 1px solid #dcdcdc; border-radius: 4px; font-size: 13px; }"
+        "QTreeWidget::item { padding: 4px; }"
+        "QTreeWidget::item:selected { background-color: #e6f3ff; color: #000; }"
+        "QPlainTextEdit { border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; }"
+        "QPushButton { padding: 5px 10px; border-radius: 4px; background-color: #007bff; color: white; }"
+        "QPushButton:hover { background-color: #0056b3; }"
+        "QPushButton:pressed { background-color: #004085; }"
+    );
 
     leftLayout->addWidget(m_queryEdit);
     leftLayout->addLayout(ctrl);
-    leftLayout->addWidget(m_resultsList, 1);
+    leftLayout->addWidget(m_resultsTree, 1);
     left->setLayout(leftLayout);
 
     QWidget *right = new QWidget(splitter);
@@ -217,18 +244,13 @@ void QuestionAssistantWidget::setupSearchTab()
 
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 1);
-    splitter->setSizes(QList<int>() << 800 << 800);
+    splitter->setSizes(QList<int>() << 600 << 800);
 
     root->addWidget(m_indexStatusLabel);
     root->addWidget(splitter, 1);
     m_searchTab->setLayout(root);
 
-    connect(m_rebuildIndexButton, &QPushButton::clicked, this, [this]() {
-        m_searchIndex->clear();
-        m_previewWidget->clear();
-        m_resultsList->clear();
-        ensureIndexReady();
-    });
+    // Removed m_rebuildIndexButton connect
 
     connect(m_searchButton, &QPushButton::clicked, this, [this]() {
         if (!ensureIndexReady()) {
@@ -236,36 +258,37 @@ void QuestionAssistantWidget::setupSearchTab()
         }
         const QString query = m_queryEdit->toPlainText().trimmed();
         const int k = m_topKSpinBox->value();
-        m_resultsList->clear();
+        m_resultsTree->clear();
         m_previewWidget->clear();
 
         const QVector<SearchHit> hits = m_searchIndex->searchTopK(query, k);
         if (hits.isEmpty()) {
-            m_resultsList->addItem("未找到相似题目");
+            // m_resultsList->addItem("未找到相似题目"); // ListWidget legacy
             return;
         }
 
         for (const SearchHit &h : hits) {
             const QuestionSourceInfo &src = m_searchIndex->documentSource(h.docIndex);
             const Question &q = m_searchIndex->documentQuestion(h.docIndex);
-            const QString title = QString("[%1] %2 | %3 | %4 | %5")
-                .arg(Question::typeToString(q.getType()))
-                .arg(src.subject)
-                .arg(src.bankName.isEmpty() ? "未命名题库" : src.bankName)
-                .arg(src.bankSrc)
-                .arg(QString::number(h.score, 'f', 3));
-            QListWidgetItem *item = new QListWidgetItem(title, m_resultsList);
-            item->setData(Qt::UserRole, h.docIndex);
-            item->setData(Qt::UserRole + 1, h.score);
-            m_resultsList->addItem(item);
+            
+            QTreeWidgetItem *item = new QTreeWidgetItem(m_resultsTree);
+            item->setText(0, Question::typeToString(q.getType()));
+            item->setText(1, src.subject);
+            item->setText(2, src.bankName.isEmpty() ? "未命名题库" : src.bankName);
+            item->setText(3, QFileInfo(src.bankSrc).fileName()); // Show filename only for cleaner view
+            item->setText(4, QString::number(h.score, 'f', 3));
+            item->setToolTip(3, src.bankSrc); // Full path in tooltip
+
+            item->setData(0, Qt::UserRole, h.docIndex);
+            item->setData(0, Qt::UserRole + 1, h.score);
         }
     });
 
-    connect(m_resultsList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+    connect(m_resultsTree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem *item, int column) {
         if (!item) {
             return;
         }
-        const QVariant v = item->data(Qt::UserRole);
+        const QVariant v = item->data(0, Qt::UserRole);
         if (!v.isValid()) {
             return;
         }
@@ -304,6 +327,7 @@ void QuestionAssistantWidget::setupPtaTab()
     m_ptaThresholdSpinBox->setSingleStep(0.05);
     m_ptaThresholdSpinBox->setDecimals(2);
     m_ptaThresholdSpinBox->setValue(0.85);
+    m_ptaThresholdSpinBox->setFixedWidth(100);
 
     m_ptaAutoAnswerButton = new QPushButton("自动答题", left);
     m_ptaAutoAnswerButton->setAutoDefault(false);
@@ -325,11 +349,35 @@ void QuestionAssistantWidget::setupPtaTab()
     m_ptaExportNewButton->setDefault(false);
 
     m_ptaQuestionList = new QListWidget(left);
+    
+    // QSS for PTA Left Panel
+    left->setStyleSheet(
+        "QListWidget { border: 1px solid #dcdcdc; border-radius: 4px; font-size: 13px; background-color: #f9f9f9; }"
+        // Removed item styling to avoid conflict with setBackground()
+        "QTextEdit { border: 1px solid #dcdcdc; border-radius: 4px; background-color: #f5f5f5; color: #555; }"
+        "QPushButton { padding: 5px; border-radius: 4px; background-color: #f0f0f0; border: 1px solid #ccc; }"
+        "QPushButton:hover { background-color: #e0e0e0; }"
+        "QPushButton#actionBtn { background-color: #007bff; color: white; border: none; }"
+        "QPushButton#actionBtn:hover { background-color: #0056b3; }"
+        "QPushButton#stopBtn { background-color: #dc3545; color: white; border: none; }"
+        "QPushButton#stopBtn:hover { background-color: #c82333; }"
+    );
+    
+    // Assign Object Names for styling
+    m_ptaParseButton->setObjectName("actionBtn");
+    m_ptaAutoAnswerButton->setObjectName("actionBtn");
+    m_ptaStopAutoButton->setObjectName("stopBtn");
+
+    m_logEdit = new QTextEdit(left);
+    m_logEdit->setReadOnly(true);
+    m_logEdit->setPlaceholderText("操作日志...");
+    m_logEdit->setMaximumHeight(120);
 
     leftLayout->addWidget(m_ptaParseButton);
     leftLayout->addLayout(autoRow);
     leftLayout->addWidget(m_ptaExportNewButton);
     leftLayout->addWidget(m_ptaQuestionList, 1);
+    leftLayout->addWidget(m_logEdit);
     left->setLayout(leftLayout);
 
     QWidget *middle = new QWidget(splitter);
@@ -379,6 +427,7 @@ void QuestionAssistantWidget::setupPtaTab()
     m_ptaPageTipLabel->setWordWrap(true);
 
     m_ptaCurrentQuestionPreview = new QuestionPreviewWidget(right);
+    m_ptaCurrentQuestionPreview->hide(); // Hidden as per user request (removed from layout)
     m_ptaSelectedBankPreview = new QuestionPreviewWidget(right);
 
     QHBoxLayout *ctrl = new QHBoxLayout();
@@ -389,6 +438,7 @@ void QuestionAssistantWidget::setupPtaTab()
     m_ptaTopKSpinBox = new QSpinBox(right);
     m_ptaTopKSpinBox->setRange(1, 50);
     m_ptaTopKSpinBox->setValue(5);
+    m_ptaTopKSpinBox->setMinimumWidth(80);
 
     m_ptaSearchButton = new QPushButton("搜题", right);
     m_ptaSearchButton->setAutoDefault(false);
@@ -404,14 +454,35 @@ void QuestionAssistantWidget::setupPtaTab()
     ctrl->addWidget(m_ptaSearchButton);
     ctrl->addWidget(m_ptaFillButton);
 
-    m_ptaSearchResults = new QListWidget(right);
+    m_ptaResultsTree = new QTreeWidget(right);
+    m_ptaResultsTree->setHeaderLabels(QStringList() << "题型" << "科目" << "题库" << "来源" << "相似度");
+    m_ptaResultsTree->setAlternatingRowColors(true);
+    m_ptaResultsTree->setRootIsDecorated(false);
+    m_ptaResultsTree->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_ptaResultsTree->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_ptaResultsTree->header()->setSectionResizeMode(QHeaderView::Interactive);
+    m_ptaResultsTree->header()->resizeSection(0, 60);  // 题型
+    m_ptaResultsTree->header()->resizeSection(1, 80);  // 科目
+    m_ptaResultsTree->header()->resizeSection(2, 120); // 题库
+    m_ptaResultsTree->header()->resizeSection(3, 120); // 来源
+
+    // QSS for PTA Right Panel
+    right->setStyleSheet(
+        "QTreeWidget { border: 1px solid #dcdcdc; border-radius: 4px; font-size: 12px; }"
+        "QTreeWidget::item { padding: 3px; }"
+        "QTreeWidget::item:selected { background-color: #e6f3ff; color: #000; }"
+        "QLabel { font-weight: bold; color: #333; margin-top: 5px; }"
+        "QPushButton { padding: 4px 8px; border-radius: 4px; background-color: #007bff; color: white; border: none; }"
+        "QPushButton:hover { background-color: #0056b3; }"
+    );
 
     rightLayout->addWidget(m_ptaPageTipLabel);
-    rightLayout->addWidget(new QLabel("当前题目", right));
-    rightLayout->addWidget(m_ptaCurrentQuestionPreview, 1);
+    // Removed Current Question Preview as per user request
+    // rightLayout->addWidget(new QLabel("当前题目", right));
+    // rightLayout->addWidget(m_ptaCurrentQuestionPreview, 1);
     rightLayout->addLayout(ctrl);
     rightLayout->addWidget(new QLabel("相似题结果（点击查看详情）", right));
-    rightLayout->addWidget(m_ptaSearchResults, 1);
+    rightLayout->addWidget(m_ptaResultsTree, 1);
     rightLayout->addWidget(new QLabel("选择的题库题目（用于填入答案）", right));
     rightLayout->addWidget(m_ptaSelectedBankPreview, 1);
     right->setLayout(rightLayout);
@@ -419,7 +490,7 @@ void QuestionAssistantWidget::setupPtaTab()
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
     splitter->setStretchFactor(2, 1);
-    splitter->setSizes(QList<int>() << 320 << 900 << 520);
+    splitter->setSizes(QList<int>() << 320 << 900 << 600);
 
     root->addWidget(splitter, 1);
     m_ptaTab->setLayout(root);
@@ -464,7 +535,7 @@ void QuestionAssistantWidget::setupPtaTab()
     };
 
     auto renderPtaCache = [this](const QString &ptaId) {
-        m_ptaSearchResults->clear();
+        m_ptaResultsTree->clear();
         m_ptaSelectedBankPreview->clear();
 
         if (!m_ptaCache.contains(ptaId)) {
@@ -474,16 +545,17 @@ void QuestionAssistantWidget::setupPtaTab()
         for (const SearchHit &h : entry.hits) {
             const QuestionSourceInfo &src = m_searchIndex->documentSource(h.docIndex);
             const Question &q = m_searchIndex->documentQuestion(h.docIndex);
-            const QString title = QString("[%1] %2 | %3 | %4 | %5")
-                .arg(Question::typeToString(q.getType()))
-                .arg(src.subject)
-                .arg(src.bankName.isEmpty() ? "未命名题库" : src.bankName)
-                .arg(src.bankSrc)
-                .arg(QString::number(h.score, 'f', 3));
-            QListWidgetItem *item = new QListWidgetItem(title, m_ptaSearchResults);
-            item->setData(Qt::UserRole, h.docIndex);
-            item->setData(Qt::UserRole + 1, h.score);
-            m_ptaSearchResults->addItem(item);
+            
+            QTreeWidgetItem *item = new QTreeWidgetItem(m_ptaResultsTree);
+            item->setText(0, Question::typeToString(q.getType()));
+            item->setText(1, src.subject);
+            item->setText(2, src.bankName.isEmpty() ? "未命名题库" : src.bankName);
+            item->setText(3, QFileInfo(src.bankSrc).fileName());
+            item->setText(4, QString::number(h.score, 'f', 3));
+            item->setToolTip(3, src.bankSrc);
+
+            item->setData(0, Qt::UserRole, h.docIndex);
+            item->setData(0, Qt::UserRole + 1, h.score);
         }
 
         if (entry.selectedDocIndex >= 0 && entry.selectedDocIndex < m_searchIndex->documentCount()) {
@@ -512,7 +584,7 @@ void QuestionAssistantWidget::setupPtaTab()
         m_ptaQuestionList->clear();
         m_currentPtaId.clear();
         m_ptaCurrentQuestionPreview->clear();
-        m_ptaSearchResults->clear();
+        m_ptaResultsTree->clear();
         m_ptaSelectedBankPreview->clear();
 
         QJsonParseError err;
@@ -629,27 +701,28 @@ void QuestionAssistantWidget::setupPtaTab()
             return;
         }
         const ParsedPtaQuestion pq = m_ptaQuestions.value(m_currentPtaId);
-        const QString query = buildPtaQueryText(pq);
+        QString query = buildPtaQueryText(pq); // Use helper
+        
         const int k = m_ptaTopKSpinBox->value();
         PtaCacheEntry entry = m_ptaCache.value(m_currentPtaId);
         entry.hits = m_searchIndex->searchTopK(query, k);
         if (!entry.hits.isEmpty()) {
             entry.selectedDocIndex = entry.hits.first().docIndex;
-            entry.bestScore = entry.hits.first().score;
-            entry.noMatch = false;
+            entry.bestScore = entry.hits.first().score; // Store best score
         } else {
             entry.selectedDocIndex = -1;
             entry.bestScore = 0.0;
-            entry.noMatch = true;
         }
+        entry.noMatch = entry.hits.isEmpty(); // Basic check
+        
         m_ptaCache.insert(m_currentPtaId, entry);
         renderPtaCache(m_currentPtaId);
         applyItemColor(m_currentPtaId);
     });
 
-    connect(m_ptaSearchResults, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+    connect(m_ptaResultsTree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem *item, int column) {
         if (!item) return;
-        const int docIndex = item->data(Qt::UserRole).toInt();
+        const int docIndex = item->data(0, Qt::UserRole).toInt();
         if (docIndex < 0 || docIndex >= m_searchIndex->documentCount()) return;
         PtaCacheEntry entry = m_ptaCache.value(m_currentPtaId);
         entry.selectedDocIndex = docIndex;
@@ -676,6 +749,7 @@ void QuestionAssistantWidget::setupPtaTab()
 
     connect(m_ptaController, &PtaAssistController::fillFinished, this, [this, applyItemColor](const QString &ptaId, bool ok, const QString &message) {
         if (!ok) {
+            log(QString("题目 %1 填入失败: %2").arg(ptaId, message));
             if (m_ptaAutoRunning && m_ptaAutoPos < m_ptaAutoQueue.size() && m_ptaAutoQueue[m_ptaAutoPos] == ptaId) {
                 PtaCacheEntry entry = m_ptaCache.value(ptaId);
                 entry.filled = false;
@@ -690,6 +764,7 @@ void QuestionAssistantWidget::setupPtaTab()
             return;
         }
 
+        log(QString("题目 %1 填入成功").arg(ptaId));
         PtaCacheEntry entry = m_ptaCache.value(ptaId);
         entry.filled = true;
         entry.noMatch = false;
@@ -701,6 +776,35 @@ void QuestionAssistantWidget::setupPtaTab()
             QTimer::singleShot(0, this, &QuestionAssistantWidget::processNextPtaAuto);
         }
     });
+
+    // Auto Load Logic
+    connect(this, &QuestionAssistantWidget::backRequested, this, [this](){
+        // Stop auto answer when leaving
+        if (m_ptaAutoRunning) {
+            stopPtaAutoAnswer();
+        }
+    });
+}
+
+// Override showEvent for auto-load
+void QuestionAssistantWidget::showEvent(QShowEvent *event) {
+    QWidget::showEvent(event);
+    if (m_firstShow) {
+        m_firstShow = false;
+        QTimer::singleShot(100, this, [this]() {
+            if (m_configManager) {
+                ensureIndexReady();
+            }
+        });
+    }
+}
+
+void QuestionAssistantWidget::log(const QString &msg)
+{
+    if (m_logEdit) {
+        QString timeStr = QDateTime::currentDateTime().toString("HH:mm:ss");
+        m_logEdit->append(QString("[%1] %2").arg(timeStr, msg));
+    }
 }
 
 bool QuestionAssistantWidget::ensureIndexReady()
@@ -787,6 +891,8 @@ void QuestionAssistantWidget::startPtaAutoAnswer()
     m_ptaAutoPos = 0;
     if (m_ptaAutoAnswerButton) m_ptaAutoAnswerButton->setEnabled(false);
     if (m_ptaStopAutoButton) m_ptaStopAutoButton->setEnabled(true);
+    
+    log("开始自动答题...");
     processNextPtaAuto();
 }
 
@@ -797,6 +903,7 @@ void QuestionAssistantWidget::stopPtaAutoAnswer()
     m_ptaAutoPos = 0;
     if (m_ptaAutoAnswerButton) m_ptaAutoAnswerButton->setEnabled(true);
     if (m_ptaStopAutoButton) m_ptaStopAutoButton->setEnabled(false);
+    log("自动答题已停止");
 }
 
 void QuestionAssistantWidget::processNextPtaAuto()
@@ -834,6 +941,7 @@ void QuestionAssistantWidget::processNextPtaAuto()
     entry.bestScore = hits.isEmpty() ? 0.0 : hits.first().score;
 
     if (hits.isEmpty() || hits.first().score < threshold) {
+        log(QString("题目 %1 未匹配 (best=%2)").arg(id, QString::number(entry.bestScore, 'f', 2)));
         entry.selectedDocIndex = hits.isEmpty() ? -1 : hits.first().docIndex;
         entry.noMatch = true;
         entry.filled = false;
@@ -844,6 +952,7 @@ void QuestionAssistantWidget::processNextPtaAuto()
         return;
     }
 
+    log(QString("题目 %1 匹配成功 (score=%2)，正在填入...").arg(id, QString::number(hits.first().score, 'f', 2)));
     entry.selectedDocIndex = hits.first().docIndex;
     entry.noMatch = false;
     m_ptaCache.insert(id, entry);
@@ -853,6 +962,7 @@ void QuestionAssistantWidget::processNextPtaAuto()
         const Question &bankQuestion = m_searchIndex->documentQuestion(entry.selectedDocIndex);
         m_ptaController->fillFromBankQuestion(id, bankQuestion);
     } else {
+        log(QString("题目 %1 缺少ID，跳过填入").arg(id));
         entry.noMatch = true;
         m_ptaCache.insert(id, entry);
         updatePtaQuestionItemVisual(id);

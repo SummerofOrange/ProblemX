@@ -29,13 +29,19 @@ private:
 
     QVBoxLayout *m_mainLayout;
     QLabel *m_typeLabel;
-    QLabel *m_answerLabel;
     QScrollArea *m_scrollArea;
     QWidget *m_scrollContent;
     QVBoxLayout *m_contentLayout;
     MarkdownRenderer *m_questionRenderer;
     QWidget *m_choicesContainer;
     QVBoxLayout *m_choicesLayout;
+    
+    // 答案区域
+    QWidget *m_answerContainer;
+    QVBoxLayout *m_answerLayout;
+    QLabel *m_answerTitleLabel;
+    QLabel *m_answerContentLabel;
+
 };
 
 #endif // QUESTIONPREVIEWWIDGET_H

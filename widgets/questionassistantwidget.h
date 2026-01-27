@@ -18,6 +18,8 @@ class QLabel;
 class QPlainTextEdit;
 class QSpinBox;
 class QListWidget;
+class QTreeWidget;
+class QTreeWidgetItem;
 class QuestionPreviewWidget;
 class QuestionSearchIndex;
 class QWebEngineView;
@@ -25,9 +27,11 @@ class QLineEdit;
 class QToolButton;
 class PtaAssistController;
 class QDoubleSpinBox;
+class QTextEdit;
 
 struct ParsedPtaQuestion {
     QString id;
+
     QString label;
     QString type;
     QString question;
@@ -70,6 +74,9 @@ private:
     void processNextPtaAuto();
     void exportPtaNewQuestions();
 
+protected:
+    void showEvent(QShowEvent *event) override;
+
     ConfigManager *m_configManager;
     QuestionSearchIndex *m_searchIndex;
 
@@ -85,8 +92,8 @@ private:
     QPlainTextEdit *m_queryEdit;
     QSpinBox *m_topKSpinBox;
     QPushButton *m_searchButton;
-    QPushButton *m_rebuildIndexButton;
-    QListWidget *m_resultsList;
+    // QPushButton *m_rebuildIndexButton; // Removed
+    QTreeWidget *m_resultsTree; // Changed from QListWidget
     QuestionPreviewWidget *m_previewWidget;
 
     PtaAssistController *m_ptaController;
@@ -101,11 +108,12 @@ private:
     QPushButton *m_ptaStopAutoButton;
     QPushButton *m_ptaExportNewButton;
     QListWidget *m_ptaQuestionList;
+    QTextEdit *m_logEdit; // Log area
     QLabel *m_ptaPageTipLabel;
     QuestionPreviewWidget *m_ptaCurrentQuestionPreview;
     QSpinBox *m_ptaTopKSpinBox;
     QPushButton *m_ptaSearchButton;
-    QListWidget *m_ptaSearchResults;
+    QTreeWidget *m_ptaResultsTree; // Changed from QListWidget
     QPushButton *m_ptaFillButton;
     QuestionPreviewWidget *m_ptaSelectedBankPreview;
 
@@ -115,6 +123,9 @@ private:
     bool m_ptaAutoRunning = false;
     QStringList m_ptaAutoQueue;
     int m_ptaAutoPos = 0;
+    bool m_firstShow = true; // Auto load flag
+
+    void log(const QString &msg);
 };
 
 #endif // QUESTIONASSISTANTWIDGET_H
