@@ -57,6 +57,7 @@ public:
     ~QuestionAssistantWidget();
 
     void setConfigManager(ConfigManager *configManager);
+    bool prepareForShow();
 
 signals:
     void backRequested();
@@ -66,7 +67,7 @@ private:
     void setupConnections();
     void setupSearchTab();
     void setupPtaTab();
-    bool ensureIndexReady();
+    bool ensureIndexReady(bool forceRebuild);
     void updatePtaQuestionItemVisual(const QString &ptaId);
     QString buildPtaQueryText(const ParsedPtaQuestion &ptaQuestion) const;
     void startPtaAutoAnswer();
@@ -123,7 +124,6 @@ protected:
     bool m_ptaAutoRunning = false;
     QStringList m_ptaAutoQueue;
     int m_ptaAutoPos = 0;
-    bool m_firstShow = true; // Auto load flag
 
     void log(const QString &msg);
 };

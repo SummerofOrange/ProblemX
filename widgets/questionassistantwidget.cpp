@@ -118,6 +118,11 @@ void QuestionAssistantWidget::setConfigManager(ConfigManager *configManager)
     }
 }
 
+bool QuestionAssistantWidget::prepareForShow()
+{
+    return ensureIndexReady(true);
+}
+
 void QuestionAssistantWidget::setupUI()
 {
     m_mainLayout = new QVBoxLayout(this);
@@ -253,7 +258,7 @@ void QuestionAssistantWidget::setupSearchTab()
     // Removed m_rebuildIndexButton connect
 
     connect(m_searchButton, &QPushButton::clicked, this, [this]() {
-        if (!ensureIndexReady()) {
+        if (!ensureIndexReady(false)) {
             return;
         }
         const QString query = m_queryEdit->toPlainText().trimmed();
@@ -693,7 +698,7 @@ void QuestionAssistantWidget::setupPtaTab()
     });
 
     connect(m_ptaSearchButton, &QPushButton::clicked, this, [this, renderPtaCache, applyItemColor]() {
-        if (!ensureIndexReady()) {
+        if (!ensureIndexReady(false)) {
             return;
         }
         if (m_currentPtaId.isEmpty() || !m_ptaQuestions.contains(m_currentPtaId)) {
@@ -786,16 +791,11 @@ void QuestionAssistantWidget::setupPtaTab()
     });
 }
 
-// Override showEvent for auto-load
-void QuestionAssistantWidget::showEvent(QShowEvent *event) {
+void QuestionAssistantWidget::showEvent(QShowEvent *event)
+{
     QWidget::showEvent(event);
-    if (m_firstShow) {
-        m_firstShow = false;
-        QTimer::singleShot(100, this, [this]() {
-            if (m_configManager) {
-                ensureIndexReady();
-            }
-        });
+    if (m_configManager) {
+        ensureIndexReady(false);
     }
 }
 
@@ -807,9 +807,9 @@ void QuestionAssistantWidget::log(const QString &msg)
     }
 }
 
-bool QuestionAssistantWidget::ensureIndexReady()
+bool QuestionAssistantWidget::ensureIndexReady(bool forceRebuild)
 {
-    if (m_searchIndex->isReady()) {
+    if (!forceRebuild && m_searchIndex->isReady()) {
         return true;
     }
     if (!m_configManager) {
@@ -864,7 +864,7 @@ void QuestionAssistantWidget::startPtaAutoAnswer()
     if (m_ptaAutoRunning) {
         return;
     }
-    if (!ensureIndexReady()) {
+    if (!ensureIndexReady(false)) {
         return;
     }
     if (!m_ptaQuestionList || m_ptaQuestionList->count() == 0) {

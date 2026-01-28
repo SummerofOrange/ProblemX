@@ -180,6 +180,12 @@ void MainWindow::showReviewWidget()
 
 void MainWindow::showQuestionAssistantWidget()
 {
+    if (m_questionAssistantWidget) {
+        m_questionAssistantWidget->setConfigManager(m_configManager);
+        if (!m_questionAssistantWidget->prepareForShow()) {
+            return;
+        }
+    }
     m_stackedWidget->setCurrentWidget(m_questionAssistantWidget);
     setWindowTitle("ProblemX - 题目助手");
 }
