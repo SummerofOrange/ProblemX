@@ -16,6 +16,7 @@ SOURCES += \
     widgets/questionassistantwidget.cpp \
     widgets/questionpreviewwidget.cpp \
     widgets/ptaassistcontroller.cpp \
+    core/ocsserver.cpp \
     core/questionmanager.cpp \
     core/configmanager.cpp \
     core/practicemanager.cpp \
@@ -39,6 +40,7 @@ HEADERS += \
     widgets/questionassistantwidget.h \
     widgets/questionpreviewwidget.h \
     widgets/ptaassistcontroller.h \
+    core/ocsserver.h \
     core/questionmanager.h \
     core/configmanager.h \
     core/practicemanager.h \

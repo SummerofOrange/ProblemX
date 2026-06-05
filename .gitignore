@@ -63,3 +63,10 @@ compile_commands.json
 .trae/
 
 example_html/
+dist/
+
+# local runtime data
+config.json
+WA_SET.json
+ocs_unmatched_questions.json
+Subject/

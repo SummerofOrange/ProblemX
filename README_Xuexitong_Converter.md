@@ -1,4 +1,4 @@
-# ProblemX 雨课堂题库转换工具使用指南
+# ProblemX 学习通题库转换工具使用指南
 
 **这是一个 Python 脚本，用于从学习通导出的 HTML 文件中提取选择题、判断题和填空题，并将它们保存为 ProblemX 支持的 JSON 题库格式。**
 
@@ -30,7 +30,7 @@ pip install beautifulsoup4
 ### 基本命令格式
 
 ```
-python extract_xuexitong_questions.py <input_html_file> --type <question_type> [-o <output_json_file>]
+python convert_Xuexitong_to_problemx.py <input_html_file> --type <question_type> [-o <output_json_file>]
 ```
 
 ### 参数说明
@@ -46,15 +46,15 @@ python extract_xuexitong_questions.py <input_html_file> --type <question_type> [
 
 * **提取选择题**：
   ```
-  python extract_xuexitong_questions.py choice.html --type Choice -o extracted_choice_questions.json
+  python convert_Xuexitong_to_problemx.py choice.html --type Choice -o extracted_choice_questions.json
   ```
 * **提取判断题**：
   ```
-  python extract_xuexitong_questions.py trueoffalse.html --type TrueorFalse -o extracted_true_false_questions.json
+  python convert_Xuexitong_to_problemx.py trueoffalse.html --type TrueorFalse -o extracted_true_false_questions.json
   ```
 * **提取填空题**：
   ```
-  python extract_xuexitong_questions.py FillBlank.html --type FillBlank -o extracted_fill_blank_questions.json
+  python convert_Xuexitong_to_problemx.py FillBlank.html --type FillBlank -o extracted_fill_blank_questions.json
   ```
 
 ## 输出格式
