@@ -300,6 +300,31 @@ C:\USERS\ADMIN\DESKTOP\QT_PROJECT\PROBLEMX\SUBJECT\DATASTRUCTURE
 
 ## 4. Markdown和LaTeX功能使用注意事项
 
+### 4.0 OCS 未命中题目导出说明
+
+ProblemX v2.2 的 OCS 服务会把未匹配到答案的请求记录为 JSON 草稿。导出的文件同样使用顶层 `"data"` 数组，每道题会包含 `type`、`question`、可选的 `choices` 和空答案字段：
+
+```json
+{
+  "data": [
+    {
+      "type": "Choice",
+      "question": "这里是 OCS 请求中未匹配到的题目",
+      "choices": [
+        "A. 选项一",
+        "B. 选项二"
+      ],
+      "answer": null,
+      "_ocs_best_score": 0.42,
+      "_ocs_threshold": 0.85,
+      "_ocs_count": 3
+    }
+  ]
+}
+```
+
+这些文件用于后续补题：请补全 `answer`，并按实际题型整理到对应题库目录后再作为正式题库使用。`_ocs_*` 字段是辅助元数据，可保留也可删除。
+
 ### 4.1 Markdown格式注意事项
 
 - 在JSON字符串中使用Markdown时，需要注意转义字符的使用

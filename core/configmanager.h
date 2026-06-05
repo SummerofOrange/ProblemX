@@ -48,6 +48,18 @@ public:
 
     double getAssistantAutoThreshold() const { return m_assistantAutoThreshold; }
     void setAssistantAutoThreshold(double v) { m_assistantAutoThreshold = qBound(0.0, v, 1.0); }
+
+    QString getOcsServiceHost() const { return m_ocsServiceHost; }
+    void setOcsServiceHost(const QString &host) { m_ocsServiceHost = host.trimmed().isEmpty() ? "127.0.0.1" : host.trimmed(); }
+
+    int getOcsServicePort() const { return m_ocsServicePort; }
+    void setOcsServicePort(int port) { m_ocsServicePort = qBound(1, port, 65535); }
+
+    double getOcsServiceThreshold() const { return m_ocsServiceThreshold; }
+    void setOcsServiceThreshold(double threshold) { m_ocsServiceThreshold = qBound(0.0, threshold, 1.0); }
+
+    int getOcsServiceTopK() const { return m_ocsServiceTopK; }
+    void setOcsServiceTopK(int topK) { m_ocsServiceTopK = qBound(1, topK, 50); }
     
     // Subject management
     QString getCurrentSubject() const { return m_currentSubject; }
@@ -96,6 +108,10 @@ private:
 
     int m_assistantSearchTopK = 5;
     double m_assistantAutoThreshold = 0.85;
+    QString m_ocsServiceHost = "127.0.0.1";
+    int m_ocsServicePort = 27419;
+    double m_ocsServiceThreshold = 0.85;
+    int m_ocsServiceTopK = 5;
     
     void parseQuestionBanks(const QJsonObject &json);
     QJsonObject questionBanksToJson() const;

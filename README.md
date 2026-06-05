@@ -1,12 +1,12 @@
 # ProblemX - 题库练习系统
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Qt](https://img.shields.io/badge/Qt-6.8-green.svg)
+![Qt](https://img.shields.io/badge/Qt-6.7%2B-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
 ## 项目概述
 
-ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮助学生高效地进行各类科目的题目练习。系统支持多种题型（选择题、多选题、判断题、填空题），提供练习模式、错题复习、进度保存等功能，并支持从 PTA、雨课堂等平台导入题库。
+ProblemX 是一个基于 Qt 6 开发的跨平台题库练习系统，旨在帮助学生高效地进行各类科目的题目练习。系统支持多种题型（选择题、多选题、判断题、填空题），提供练习模式、错题复习、进度保存等功能，并支持从 PTA、雨课堂等平台导入题库。
 
 ## 功能特点
 
@@ -14,6 +14,8 @@ ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮
 - **多题型支持**：支持选择题、多选题、判断题、填空题等多种题型
 - **智能题库获取**：内置 PTA 题库抓取工具，一键解析题目、评测状态与图片
 - **智能辅助答题**：支持自动搜索本地题库并填入网页，实时状态反馈与新题导出
+- **OCS本地题库服务**：可在题目助手中启动本地 HTTP 题库服务，供 OCS 网课助手检索本地题库并自动生成题库配置文本
+- **未命中题目沉淀**：OCS 检索未命中时自动记录题目，支持导出 JSON 草稿用于后续补题
 - **本地化图片管理**：自动下载题库图片，实现题库完全离线化
 - **增强型题库编辑**：全新卡片式编辑器，支持实时预览、Markdown/LaTeX 编辑与评测状态标记
 - **Markdown渲染**：支持在题目中使用Markdown格式，包括粗体、斜体、代码块等
@@ -27,7 +29,7 @@ ProblemX 是一个基于 Qt 6.8 开发的跨平台题库练习系统，旨在帮
 
 ### 系统要求
 
-- Qt 6.8 或更高版本
+- Qt 6.7/6.8 或更高版本
 - Qt WebEngine 模块（用于Markdown和LaTeX渲染）
 - Qt Network 模块（用于图片下载）
 - C++17 兼容的编译器
@@ -86,7 +88,7 @@ DataStructure/Choice/asset/img1.png
 
 ### 从 PTA 平台智能获取题库（推荐）
 
-ProblemX V2.1（Beta） 内置了强大的 PTA 题库抓取工具：
+ProblemX V2.2 内置了强大的 PTA 题库抓取工具：
 
 1. 在“配置程序”界面选中科目，点击【自动获取题库】。
 2. 在弹出的窗口中，左侧浏览器登录 Pintia 账号并进入题目集详情页。
@@ -99,8 +101,16 @@ ProblemX V2.1（Beta） 内置了强大的 PTA 题库抓取工具：
 对于其他平台，可以使用内置的 Python 转换脚本：
 
 - **雨课堂**：`python convert_Yuketang_to_problemx.py ...` ([说明](README_Yuketang_Converter.md))
-- **学习通**：`python extract_xuexitong_questions.py ...` ([说明](README_Xuexitong_Converter.md.md))
-- **PTA (脚本方式)**：`python convert_PTA_to_problemx.py ...` ([说明](README_PTA_Converter.md))
+- **学习通**：`python convert_Xuexitong_to_problemx.py ...` ([说明](README_Xuexitong_Converter.md))
+
+### OCS 本地题库服务
+
+ProblemX V2.2 在“题目助手”中新增 **OCS服务** 分页，可将本地题库暴露为 OCS 网课助手可调用的题库接口。
+
+1. 打开【题目助手】 -> 【OCS服务】。
+2. 配置监听地址、端口、相似度阈值和返回数量，点击【启动服务】。
+3. 复制右侧生成的 OCS 题库配置文本，粘贴到 OCS 网课助手的题库配置中。
+4. OCS 请求未匹配到答案时，ProblemX 会自动记录未命中题目，可点击【导出未命中题目】生成 JSON 草稿，后续补充答案并导入题库。
 
 ### 升级旧版题库
 
@@ -147,6 +157,12 @@ python convert_old_problembank.py <题库根目录>
 - Email: orangesummer.ovo@qq.com
 
 ## 更新日志
+
+### **v2.2 (2026-06-05)**
+
+- **OCS本地题库服务**：题目助手新增 OCS 服务分页，支持启动/停止本地题库检索服务，并自动生成可粘贴到 OCS 网课助手的题库配置文本。
+- **服务配置与日志**：支持配置监听地址、端口、相似度阈值、Top-K 返回数量，提供服务日志、健康检查和本地检索接口。
+- **未命中题目导出**：OCS 请求未命中时自动记录题目，支持去重、累计次数统计、清空记录和导出 JSON 草稿。
 
 ### **v2.1 (2026-01-27)**
 

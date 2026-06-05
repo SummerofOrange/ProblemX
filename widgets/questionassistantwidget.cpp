@@ -1,6 +1,7 @@
 #include "questionassistantwidget.h"
 #include "questionpreviewwidget.h"
 #include "ptaassistcontroller.h"
+#include "../core/ocsserver.h"
 #include "../core/configmanager.h"
 #include "../utils/questionsearchindex.h"
 
@@ -33,6 +34,11 @@
 #include <QTextEdit>
 #include <QDateTime>
 #include <QHeaderView>
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QGroupBox>
+#include <QGridLayout>
+#include <QTextCursor>
 
 QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     : QWidget(parent)
@@ -45,6 +51,7 @@ QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     , m_tabs(nullptr)
     , m_searchTab(nullptr)
     , m_ptaTab(nullptr)
+    , m_ocsTab(nullptr)
     , m_indexStatusLabel(nullptr)
     , m_queryEdit(nullptr)
     , m_topKSpinBox(nullptr)
@@ -72,6 +79,22 @@ QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     , m_ptaResultsTree(nullptr)
     , m_ptaFillButton(nullptr)
     , m_ptaSelectedBankPreview(nullptr)
+    , m_ocsServer(new OcsServer(m_searchIndex, this))
+    , m_ocsStatusLabel(nullptr)
+    , m_ocsUrlLabel(nullptr)
+    , m_ocsHostEdit(nullptr)
+    , m_ocsPortSpinBox(nullptr)
+    , m_ocsThresholdSpinBox(nullptr)
+    , m_ocsTopKSpinBox(nullptr)
+    , m_ocsStartButton(nullptr)
+    , m_ocsStopButton(nullptr)
+    , m_ocsRefreshIndexButton(nullptr)
+    , m_ocsCopyConfigButton(nullptr)
+    , m_ocsExportUnmatchedButton(nullptr)
+    , m_ocsClearUnmatchedButton(nullptr)
+    , m_ocsUnmatchedLabel(nullptr)
+    , m_ocsLogEdit(nullptr)
+    , m_ocsConfigEdit(nullptr)
 {
     setupUI();
     setupConnections();
@@ -116,6 +139,20 @@ void QuestionAssistantWidget::setConfigManager(ConfigManager *configManager)
             m_configManager->saveConfig();
         }, Qt::UniqueConnection);
     }
+    if (m_ocsHostEdit) {
+        m_ocsHostEdit->setText(m_configManager->getOcsServiceHost());
+    }
+    if (m_ocsPortSpinBox) {
+        m_ocsPortSpinBox->setValue(m_configManager->getOcsServicePort());
+    }
+    if (m_ocsThresholdSpinBox) {
+        m_ocsThresholdSpinBox->setValue(m_configManager->getOcsServiceThreshold());
+    }
+    if (m_ocsTopKSpinBox) {
+        m_ocsTopKSpinBox->setValue(m_configManager->getOcsServiceTopK());
+    }
+    updateOcsConfigText();
+    updateOcsServiceState();
 }
 
 bool QuestionAssistantWidget::prepareForShow()
@@ -151,8 +188,10 @@ void QuestionAssistantWidget::setupUI()
     m_tabs = new QTabWidget(this);
     m_searchTab = new QWidget(m_tabs);
     m_ptaTab = new QWidget(m_tabs);
+    m_ocsTab = new QWidget(m_tabs);
     m_tabs->addTab(m_searchTab, "搜题");
     m_tabs->addTab(m_ptaTab, "辅助答题(PTA)");
+    m_tabs->addTab(m_ocsTab, "OCS服务");
 
     m_mainLayout->addLayout(m_headerLayout);
     m_mainLayout->addWidget(m_tabs, 1);
@@ -160,6 +199,7 @@ void QuestionAssistantWidget::setupUI()
 
     setupSearchTab();
     setupPtaTab();
+    setupOcsTab();
 }
 
 void QuestionAssistantWidget::setupConnections()
@@ -791,6 +831,203 @@ void QuestionAssistantWidget::setupPtaTab()
     });
 }
 
+void QuestionAssistantWidget::setupOcsTab()
+{
+    QVBoxLayout *root = new QVBoxLayout(m_ocsTab);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(10);
+
+    QSplitter *splitter = new QSplitter(Qt::Horizontal, m_ocsTab);
+
+    QWidget *left = new QWidget(splitter);
+    QVBoxLayout *leftLayout = new QVBoxLayout(left);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->setSpacing(10);
+
+    QGroupBox *statusBox = new QGroupBox("服务状态", left);
+    QVBoxLayout *statusLayout = new QVBoxLayout(statusBox);
+    statusLayout->setSpacing(8);
+
+    m_ocsStatusLabel = new QLabel("状态：未启动", statusBox);
+    m_ocsUrlLabel = new QLabel("地址：-", statusBox);
+    m_ocsUrlLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+
+    QHBoxLayout *buttonRow = new QHBoxLayout();
+    buttonRow->setContentsMargins(0, 0, 0, 0);
+    buttonRow->setSpacing(8);
+    m_ocsStartButton = new QPushButton("启动服务", statusBox);
+    m_ocsStopButton = new QPushButton("停止服务", statusBox);
+    m_ocsRefreshIndexButton = new QPushButton("刷新题库索引", statusBox);
+    m_ocsStopButton->setEnabled(false);
+    buttonRow->addWidget(m_ocsStartButton);
+    buttonRow->addWidget(m_ocsStopButton);
+    buttonRow->addWidget(m_ocsRefreshIndexButton);
+
+    statusLayout->addWidget(m_ocsStatusLabel);
+    statusLayout->addWidget(m_ocsUrlLabel);
+    statusLayout->addLayout(buttonRow);
+
+    QGroupBox *configBox = new QGroupBox("服务配置", left);
+    QGridLayout *configGrid = new QGridLayout(configBox);
+    configGrid->setContentsMargins(14, 14, 14, 14);
+    configGrid->setHorizontalSpacing(14);
+    configGrid->setVerticalSpacing(12);
+    configGrid->setColumnStretch(0, 0);
+    configGrid->setColumnStretch(1, 1);
+
+    m_ocsHostEdit = new QLineEdit(configBox);
+    m_ocsHostEdit->setText("127.0.0.1");
+    m_ocsHostEdit->setPlaceholderText("127.0.0.1");
+    m_ocsHostEdit->setMinimumWidth(220);
+
+    m_ocsPortSpinBox = new QSpinBox(configBox);
+    m_ocsPortSpinBox->setRange(1, 65535);
+    m_ocsPortSpinBox->setValue(27419);
+    m_ocsPortSpinBox->setMinimumWidth(140);
+    m_ocsPortSpinBox->setAlignment(Qt::AlignRight);
+
+    m_ocsThresholdSpinBox = new QDoubleSpinBox(configBox);
+    m_ocsThresholdSpinBox->setRange(0.0, 1.0);
+    m_ocsThresholdSpinBox->setSingleStep(0.05);
+    m_ocsThresholdSpinBox->setDecimals(2);
+    m_ocsThresholdSpinBox->setValue(0.85);
+    m_ocsThresholdSpinBox->setMinimumWidth(140);
+    m_ocsThresholdSpinBox->setAlignment(Qt::AlignRight);
+
+    m_ocsTopKSpinBox = new QSpinBox(configBox);
+    m_ocsTopKSpinBox->setRange(1, 50);
+    m_ocsTopKSpinBox->setValue(5);
+    m_ocsTopKSpinBox->setMinimumWidth(140);
+    m_ocsTopKSpinBox->setAlignment(Qt::AlignRight);
+
+    auto addConfigRow = [configBox, configGrid](int row, const QString &text, QWidget *editor) {
+        QLabel *label = new QLabel(text, configBox);
+        label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        configGrid->addWidget(label, row, 0, Qt::AlignLeft | Qt::AlignVCenter);
+        configGrid->addWidget(editor, row, 1, Qt::AlignRight | Qt::AlignVCenter);
+    };
+
+    addConfigRow(0, "监听地址：", m_ocsHostEdit);
+    addConfigRow(1, "端口：", m_ocsPortSpinBox);
+    addConfigRow(2, "相似度阈值：", m_ocsThresholdSpinBox);
+    addConfigRow(3, "返回数量：", m_ocsTopKSpinBox);
+
+    m_ocsLogEdit = new QTextEdit(left);
+    m_ocsLogEdit->setReadOnly(true);
+    m_ocsLogEdit->setPlaceholderText("服务日志...");
+
+    m_ocsUnmatchedLabel = new QLabel("未命中题目：0", left);
+    QHBoxLayout *unmatchedRow = new QHBoxLayout();
+    unmatchedRow->setContentsMargins(0, 0, 0, 0);
+    unmatchedRow->setSpacing(8);
+    m_ocsExportUnmatchedButton = new QPushButton("导出未命中题目", left);
+    m_ocsClearUnmatchedButton = new QPushButton("清空记录", left);
+    unmatchedRow->addWidget(m_ocsExportUnmatchedButton);
+    unmatchedRow->addWidget(m_ocsClearUnmatchedButton);
+    unmatchedRow->addStretch();
+
+    leftLayout->addWidget(statusBox);
+    leftLayout->addWidget(configBox);
+    leftLayout->addWidget(m_ocsUnmatchedLabel);
+    leftLayout->addLayout(unmatchedRow);
+    leftLayout->addWidget(new QLabel("日志", left));
+    leftLayout->addWidget(m_ocsLogEdit, 1);
+    left->setLayout(leftLayout);
+
+    QWidget *right = new QWidget(splitter);
+    QVBoxLayout *rightLayout = new QVBoxLayout(right);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(8);
+
+    QLabel *configTitle = new QLabel("OCS题库配置文本", right);
+    m_ocsConfigEdit = new QPlainTextEdit(right);
+    m_ocsConfigEdit->setReadOnly(true);
+    m_ocsConfigEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
+    m_ocsConfigEdit->setPlaceholderText("启动或修改配置后自动生成，可直接复制到 OCS 网课助手的题库配置中。");
+
+    QHBoxLayout *configButtonRow = new QHBoxLayout();
+    configButtonRow->setContentsMargins(0, 0, 0, 0);
+    configButtonRow->setSpacing(8);
+    m_ocsCopyConfigButton = new QPushButton("复制配置文本", right);
+    configButtonRow->addStretch();
+    configButtonRow->addWidget(m_ocsCopyConfigButton);
+
+    QLabel *tip = new QLabel("接口：POST /api/search；健康检查：GET /health。OCS 会把当前题目标题发送到本地服务。", right);
+    tip->setWordWrap(true);
+
+    rightLayout->addWidget(configTitle);
+    rightLayout->addWidget(m_ocsConfigEdit, 1);
+    rightLayout->addLayout(configButtonRow);
+    rightLayout->addWidget(tip);
+    right->setLayout(rightLayout);
+
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    splitter->setSizes(QList<int>() << 420 << 760);
+
+    root->addWidget(splitter, 1);
+    m_ocsTab->setLayout(root);
+
+    left->setStyleSheet(
+        "QGroupBox { border: 1px solid #dcdcdc; border-radius: 4px; margin-top: 8px; padding-top: 10px; }"
+        "QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; }"
+        "QTextEdit, QLineEdit, QSpinBox, QDoubleSpinBox { border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; }"
+        "QPushButton { padding: 5px 10px; border-radius: 4px; background-color: #007bff; color: white; border: none; }"
+        "QPushButton:hover { background-color: #0056b3; }"
+        "QPushButton:disabled { background-color: #c8c8c8; color: #666; }"
+    );
+    right->setStyleSheet(
+        "QPlainTextEdit { border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px; font-family: Consolas, monospace; }"
+        "QPushButton { padding: 5px 10px; border-radius: 4px; background-color: #007bff; color: white; border: none; }"
+        "QPushButton:hover { background-color: #0056b3; }"
+    );
+
+    connect(m_ocsStartButton, &QPushButton::clicked, this, &QuestionAssistantWidget::startOcsService);
+    connect(m_ocsStopButton, &QPushButton::clicked, this, &QuestionAssistantWidget::stopOcsService);
+    connect(m_ocsRefreshIndexButton, &QPushButton::clicked, this, [this]() {
+        if (ensureIndexReady(true)) {
+            logOcs(QString("题库索引已刷新：%1 题").arg(m_searchIndex->documentCount()));
+        }
+    });
+    connect(m_ocsCopyConfigButton, &QPushButton::clicked, this, [this]() {
+        const QString text = buildOcsConfigText();
+        QGuiApplication::clipboard()->setText(text);
+        logOcs("OCS配置文本已复制到剪贴板");
+    });
+    connect(m_ocsExportUnmatchedButton, &QPushButton::clicked, this, &QuestionAssistantWidget::exportOcsUnmatchedQuestions);
+    connect(m_ocsClearUnmatchedButton, &QPushButton::clicked, this, &QuestionAssistantWidget::clearOcsUnmatchedQuestions);
+
+    auto persistConfig = [this]() {
+        if (!m_configManager) {
+            updateOcsConfigText();
+            return;
+        }
+        m_configManager->setOcsServiceHost(m_ocsHostEdit->text());
+        m_configManager->setOcsServicePort(m_ocsPortSpinBox->value());
+        m_configManager->setOcsServiceThreshold(m_ocsThresholdSpinBox->value());
+        m_configManager->setOcsServiceTopK(m_ocsTopKSpinBox->value());
+        m_configManager->saveConfig();
+        updateOcsConfigText();
+    };
+
+    connect(m_ocsHostEdit, &QLineEdit::editingFinished, this, persistConfig);
+    connect(m_ocsPortSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, persistConfig);
+    connect(m_ocsThresholdSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, persistConfig);
+    connect(m_ocsTopKSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, persistConfig);
+
+    connect(m_ocsServer, &OcsServer::logMessage, this, &QuestionAssistantWidget::logOcs);
+    connect(m_ocsServer, &OcsServer::unmatchedQuestion, this, &QuestionAssistantWidget::recordOcsUnmatchedQuestion);
+    connect(m_ocsServer, &OcsServer::runningChanged, this, [this](bool) {
+        updateOcsServiceState();
+        updateOcsConfigText();
+    });
+
+    loadOcsUnmatchedQuestions();
+    updateOcsConfigText();
+    updateOcsServiceState();
+    updateOcsUnmatchedStatus();
+}
+
 void QuestionAssistantWidget::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
@@ -805,6 +1042,16 @@ void QuestionAssistantWidget::log(const QString &msg)
         QString timeStr = QDateTime::currentDateTime().toString("HH:mm:ss");
         m_logEdit->append(QString("[%1] %2").arg(timeStr, msg));
     }
+}
+
+void QuestionAssistantWidget::logOcs(const QString &msg)
+{
+    if (!m_ocsLogEdit) {
+        return;
+    }
+    const QString timeStr = QDateTime::currentDateTime().toString("HH:mm:ss");
+    m_ocsLogEdit->append(QString("[%1] %2").arg(timeStr, msg));
+    m_ocsLogEdit->moveCursor(QTextCursor::End);
 }
 
 bool QuestionAssistantWidget::ensureIndexReady(bool forceRebuild)
@@ -825,6 +1072,401 @@ bool QuestionAssistantWidget::ensureIndexReady(bool forceRebuild)
 
     m_indexStatusLabel->setText(QString("题库索引：已加载 %1 题").arg(m_searchIndex->documentCount()));
     return true;
+}
+
+void QuestionAssistantWidget::startOcsService()
+{
+    if (!m_ocsServer) {
+        return;
+    }
+    if (!ensureIndexReady(false)) {
+        logOcs("题库索引加载失败，服务未启动");
+        return;
+    }
+
+    OcsServerConfig config;
+    config.host = m_ocsHostEdit ? m_ocsHostEdit->text().trimmed() : "127.0.0.1";
+    if (config.host.isEmpty()) {
+        config.host = "127.0.0.1";
+    }
+    config.port = static_cast<quint16>(m_ocsPortSpinBox ? m_ocsPortSpinBox->value() : 27419);
+    config.threshold = m_ocsThresholdSpinBox ? m_ocsThresholdSpinBox->value() : 0.85;
+    config.topK = m_ocsTopKSpinBox ? m_ocsTopKSpinBox->value() : 5;
+
+    if (m_configManager) {
+        m_configManager->setOcsServiceHost(config.host);
+        m_configManager->setOcsServicePort(config.port);
+        m_configManager->setOcsServiceThreshold(config.threshold);
+        m_configManager->setOcsServiceTopK(config.topK);
+        m_configManager->saveConfig();
+    }
+
+    if (!m_ocsServer->start(config, m_configManager)) {
+        logOcs(QString("服务启动失败：%1").arg(m_ocsServer->lastError()));
+        QMessageBox::warning(this, "OCS服务启动失败", m_ocsServer->lastError());
+        updateOcsServiceState();
+        return;
+    }
+
+    updateOcsServiceState();
+    updateOcsConfigText();
+}
+
+void QuestionAssistantWidget::stopOcsService()
+{
+    if (m_ocsServer) {
+        m_ocsServer->stop();
+    }
+    updateOcsServiceState();
+}
+
+void QuestionAssistantWidget::updateOcsServiceState()
+{
+    const bool running = m_ocsServer && m_ocsServer->isRunning();
+    if (m_ocsStatusLabel) {
+        m_ocsStatusLabel->setText(running ? "状态：运行中" : "状态：未启动");
+    }
+    if (m_ocsUrlLabel) {
+        m_ocsUrlLabel->setText(running && m_ocsServer ? QString("地址：%1").arg(m_ocsServer->baseUrl()) : "地址：-");
+    }
+    if (m_ocsStartButton) {
+        m_ocsStartButton->setEnabled(!running);
+    }
+    if (m_ocsStopButton) {
+        m_ocsStopButton->setEnabled(running);
+    }
+    if (m_ocsHostEdit) {
+        m_ocsHostEdit->setEnabled(!running);
+    }
+    if (m_ocsPortSpinBox) {
+        m_ocsPortSpinBox->setEnabled(!running);
+    }
+}
+
+void QuestionAssistantWidget::updateOcsConfigText()
+{
+    if (m_ocsConfigEdit) {
+        m_ocsConfigEdit->setPlainText(buildOcsConfigText());
+    }
+}
+
+QString QuestionAssistantWidget::buildOcsConfigText() const
+{
+    const QString host = m_ocsHostEdit && !m_ocsHostEdit->text().trimmed().isEmpty()
+        ? m_ocsHostEdit->text().trimmed()
+        : QStringLiteral("127.0.0.1");
+    const int port = m_ocsPortSpinBox ? m_ocsPortSpinBox->value() : 27419;
+    const double threshold = m_ocsThresholdSpinBox ? m_ocsThresholdSpinBox->value() : 0.85;
+    const int topK = m_ocsTopKSpinBox ? m_ocsTopKSpinBox->value() : 5;
+    const QString url = QString("http://%1:%2/api/search").arg(host).arg(port);
+
+    QJsonObject titleHandler;
+    titleHandler["handler"] = "return (env) => env.title || env.question || ''";
+
+    QJsonObject optionsHandler;
+    optionsHandler["handler"] = "return (env) => Array.isArray(env.options) ? env.options : []";
+
+    QJsonObject typeHandler;
+    typeHandler["handler"] = "return (env) => env.type || 'auto'";
+
+    QJsonObject data;
+    data["title"] = titleHandler;
+    data["options"] = optionsHandler;
+    data["type"] = typeHandler;
+
+    QJsonObject headers;
+    headers["Content-Type"] = "application/json";
+
+    const QString handler =
+        "return (res) => {\n"
+        "  const list = Array.isArray(res?.data) ? res.data : [];\n"
+        "  return list.map((item) => [\n"
+        "    item.question || '',\n"
+        "    item.answer || '',\n"
+        "    {\n"
+        "      score: item.score,\n"
+        "      subject: item.subject,\n"
+        "      bank: item.bank,\n"
+        "      source: item.source,\n"
+        "      answers: item.answers\n"
+        "    }\n"
+        "  ]);\n"
+        "}";
+
+    QJsonObject wrapper;
+    wrapper["name"] = "ProblemX 本地题库";
+    wrapper["homepage"] = "http://127.0.0.1";
+    wrapper["url"] = url;
+    wrapper["method"] = "post";
+    wrapper["type"] = "GM_xmlhttpRequest";
+    wrapper["contentType"] = "json";
+    wrapper["headers"] = headers;
+    wrapper["data"] = data;
+    wrapper["handler"] = handler;
+
+    QJsonObject extra;
+    extra["threshold"] = threshold;
+    extra["topK"] = topK;
+    wrapper["extra"] = extra;
+
+    QJsonArray root;
+    root.append(wrapper);
+    return QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Indented));
+}
+
+QString QuestionAssistantWidget::ocsUnmatchedCachePath() const
+{
+    return "ocs_unmatched_questions.json";
+}
+
+QString QuestionAssistantWidget::makeOcsUnmatchedKey(const QString &title, const QStringList &options, const QString &type) const
+{
+    QString key = title.trimmed();
+    if (!options.isEmpty()) {
+        key.append("\n");
+        key.append(options.join("\n"));
+    }
+    key.append("\n");
+    key.append(type.trimmed());
+    return key;
+}
+
+static QString normalizeOcsUnmatchedExportType(const QString &type)
+{
+    const QString trimmed = type.trimmed();
+    if (trimmed == "Choice" || trimmed == "MultipleChoice" || trimmed == "FillBlank" || trimmed == "TrueorFalse" || trimmed == "TrueOrFalse") {
+        return trimmed == "TrueOrFalse" ? "TrueorFalse" : trimmed;
+    }
+
+    const QString lower = trimmed.toLower();
+    if (lower.contains("fill") || lower.contains("blank") || lower.contains("completion")) {
+        return "FillBlank";
+    }
+    if (lower.contains("multi") || lower.contains("multiple")) {
+        return "MultipleChoice";
+    }
+    if (lower.contains("judge") || lower.contains("true") || lower.contains("false") || lower.contains("boolean")) {
+        return "TrueorFalse";
+    }
+    return "Choice";
+}
+
+void QuestionAssistantWidget::loadOcsUnmatchedQuestions()
+{
+    m_ocsUnmatchedQuestions.clear();
+
+    QFile file(ocsUnmatchedCachePath());
+    if (!file.exists()) {
+        updateOcsUnmatchedStatus();
+        return;
+    }
+    if (!file.open(QIODevice::ReadOnly)) {
+        logOcs("未命中题目记录读取失败");
+        updateOcsUnmatchedStatus();
+        return;
+    }
+
+    QJsonParseError error;
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+    file.close();
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        logOcs("未命中题目记录格式无效，已忽略");
+        updateOcsUnmatchedStatus();
+        return;
+    }
+
+    const QJsonArray data = doc.object().value("data").toArray();
+    for (const QJsonValue &value : data) {
+        if (!value.isObject()) {
+            continue;
+        }
+        const QJsonObject object = value.toObject();
+        OcsUnmatchedQuestion item;
+        item.title = object.value("question").toString().trimmed();
+        item.type = object.value("_ocs_type").toString().trimmed();
+        item.bestScore = object.value("_ocs_best_score").toDouble(0.0);
+        item.threshold = object.value("_ocs_threshold").toDouble(0.0);
+        item.count = qMax(1, object.value("_ocs_count").toInt(1));
+        item.firstSeen = object.value("_ocs_first_seen").toString();
+        item.lastSeen = object.value("_ocs_last_seen").toString();
+
+        const QJsonArray choices = object.value("choices").toArray();
+        for (const QJsonValue &choice : choices) {
+            const QString text = choice.toString().trimmed();
+            if (!text.isEmpty()) {
+                item.options.append(text);
+            }
+        }
+
+        if (item.title.isEmpty()) {
+            continue;
+        }
+        m_ocsUnmatchedQuestions.insert(makeOcsUnmatchedKey(item.title, item.options, item.type), item);
+    }
+
+    updateOcsUnmatchedStatus();
+}
+
+void QuestionAssistantWidget::saveOcsUnmatchedQuestions() const
+{
+    QJsonArray data;
+    for (auto it = m_ocsUnmatchedQuestions.constBegin(); it != m_ocsUnmatchedQuestions.constEnd(); ++it) {
+        const OcsUnmatchedQuestion item = it.value();
+        QJsonObject object;
+        object["type"] = normalizeOcsUnmatchedExportType(item.type);
+        object["question"] = item.title;
+
+        if (!item.options.isEmpty()) {
+            QJsonArray choices;
+            for (const QString &option : item.options) {
+                choices.append(option);
+            }
+            object["choices"] = choices;
+        }
+
+        object["answer"] = QJsonValue::Null;
+        object["_ocs_type"] = item.type;
+        object["_ocs_best_score"] = item.bestScore;
+        object["_ocs_threshold"] = item.threshold;
+        object["_ocs_count"] = item.count;
+        object["_ocs_first_seen"] = item.firstSeen;
+        object["_ocs_last_seen"] = item.lastSeen;
+        data.append(object);
+    }
+
+    QJsonObject root;
+    root["data"] = data;
+    root["_source"] = "ProblemX OCS service unmatched questions";
+    root["_saved_at"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    QFile file(ocsUnmatchedCachePath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return;
+    }
+    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    file.close();
+}
+
+void QuestionAssistantWidget::recordOcsUnmatchedQuestion(const QString &title, const QStringList &options, const QString &type, double bestScore, double threshold)
+{
+    const QString cleanTitle = title.trimmed();
+    if (cleanTitle.isEmpty()) {
+        return;
+    }
+
+    const QString key = makeOcsUnmatchedKey(cleanTitle, options, type);
+    const QString now = QDateTime::currentDateTime().toString(Qt::ISODate);
+    OcsUnmatchedQuestion item = m_ocsUnmatchedQuestions.value(key);
+    if (item.title.isEmpty()) {
+        item.title = cleanTitle;
+        item.options = options;
+        item.type = type.trimmed();
+        item.firstSeen = now;
+        item.count = 0;
+    }
+    item.bestScore = bestScore;
+    item.threshold = threshold;
+    item.lastSeen = now;
+    item.count += 1;
+    m_ocsUnmatchedQuestions.insert(key, item);
+
+    saveOcsUnmatchedQuestions();
+    updateOcsUnmatchedStatus();
+    logOcs(QString("已记录未命中题目：%1（累计 %2 次）")
+           .arg(cleanTitle.left(36))
+           .arg(item.count));
+}
+
+void QuestionAssistantWidget::exportOcsUnmatchedQuestions()
+{
+    if (m_ocsUnmatchedQuestions.isEmpty()) {
+        QMessageBox::information(this, "提示", "没有可导出的未命中题目");
+        return;
+    }
+
+    const QString filePath = QFileDialog::getSaveFileName(this, "导出OCS未命中题目", "ocs_unmatched_questions.json", "JSON (*.json)");
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    QJsonArray data;
+    for (auto it = m_ocsUnmatchedQuestions.constBegin(); it != m_ocsUnmatchedQuestions.constEnd(); ++it) {
+        const OcsUnmatchedQuestion item = it.value();
+        QJsonObject object;
+        object["type"] = normalizeOcsUnmatchedExportType(item.type);
+        object["question"] = item.title;
+        if (!item.options.isEmpty()) {
+            QJsonArray choices;
+            for (const QString &option : item.options) {
+                choices.append(option);
+            }
+            object["choices"] = choices;
+        }
+        object["answer"] = QJsonValue::Null;
+        object["_ocs_type"] = item.type;
+        object["_ocs_best_score"] = item.bestScore;
+        object["_ocs_threshold"] = item.threshold;
+        object["_ocs_count"] = item.count;
+        object["_ocs_first_seen"] = item.firstSeen;
+        object["_ocs_last_seen"] = item.lastSeen;
+        data.append(object);
+    }
+
+    QJsonObject root;
+    root["data"] = data;
+    root["_source"] = "ProblemX OCS service unmatched questions";
+    root["_exported_at"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, "导出失败", "无法写入文件");
+        return;
+    }
+    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    file.close();
+
+    QMessageBox::information(this, "导出成功", QString("已导出 %1 题：\n%2").arg(data.size()).arg(filePath));
+}
+
+void QuestionAssistantWidget::clearOcsUnmatchedQuestions()
+{
+    if (m_ocsUnmatchedQuestions.isEmpty()) {
+        updateOcsUnmatchedStatus();
+        return;
+    }
+
+    const QMessageBox::StandardButton ret = QMessageBox::question(
+        this,
+        "清空未命中题目",
+        "确定要清空当前记录的 OCS 未命中题目吗？",
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+    if (ret != QMessageBox::Yes) {
+        return;
+    }
+
+    m_ocsUnmatchedQuestions.clear();
+    saveOcsUnmatchedQuestions();
+    updateOcsUnmatchedStatus();
+    logOcs("未命中题目记录已清空");
+}
+
+void QuestionAssistantWidget::updateOcsUnmatchedStatus()
+{
+    if (m_ocsUnmatchedLabel) {
+        int totalCount = 0;
+        for (auto it = m_ocsUnmatchedQuestions.constBegin(); it != m_ocsUnmatchedQuestions.constEnd(); ++it) {
+            totalCount += qMax(1, it.value().count);
+        }
+        m_ocsUnmatchedLabel->setText(QString("未命中题目：%1 题 / %2 次").arg(m_ocsUnmatchedQuestions.size()).arg(totalCount));
+    }
+    const bool hasData = !m_ocsUnmatchedQuestions.isEmpty();
+    if (m_ocsExportUnmatchedButton) {
+        m_ocsExportUnmatchedButton->setEnabled(hasData);
+    }
+    if (m_ocsClearUnmatchedButton) {
+        m_ocsClearUnmatchedButton->setEnabled(hasData);
+    }
 }
 
 void QuestionAssistantWidget::updatePtaQuestionItemVisual(const QString &ptaId)

@@ -26,6 +26,7 @@ class QWebEngineView;
 class QLineEdit;
 class QToolButton;
 class PtaAssistController;
+class OcsServer;
 class QDoubleSpinBox;
 class QTextEdit;
 
@@ -48,6 +49,17 @@ struct PtaCacheEntry {
     double bestScore = 0.0;
 };
 
+struct OcsUnmatchedQuestion {
+    QString title;
+    QStringList options;
+    QString type;
+    double bestScore = 0.0;
+    double threshold = 0.0;
+    int count = 0;
+    QString firstSeen;
+    QString lastSeen;
+};
+
 class QuestionAssistantWidget : public QWidget
 {
     Q_OBJECT
@@ -67,6 +79,7 @@ private:
     void setupConnections();
     void setupSearchTab();
     void setupPtaTab();
+    void setupOcsTab();
     bool ensureIndexReady(bool forceRebuild);
     void updatePtaQuestionItemVisual(const QString &ptaId);
     QString buildPtaQueryText(const ParsedPtaQuestion &ptaQuestion) const;
@@ -74,6 +87,20 @@ private:
     void stopPtaAutoAnswer();
     void processNextPtaAuto();
     void exportPtaNewQuestions();
+    void startOcsService();
+    void stopOcsService();
+    void updateOcsServiceState();
+    void updateOcsConfigText();
+    QString buildOcsConfigText() const;
+    void loadOcsUnmatchedQuestions();
+    void saveOcsUnmatchedQuestions() const;
+    void recordOcsUnmatchedQuestion(const QString &title, const QStringList &options, const QString &type, double bestScore, double threshold);
+    void exportOcsUnmatchedQuestions();
+    void clearOcsUnmatchedQuestions();
+    void updateOcsUnmatchedStatus();
+    QString ocsUnmatchedCachePath() const;
+    QString makeOcsUnmatchedKey(const QString &title, const QStringList &options, const QString &type) const;
+    void logOcs(const QString &msg);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -88,6 +115,7 @@ protected:
     QTabWidget *m_tabs;
     QWidget *m_searchTab;
     QWidget *m_ptaTab;
+    QWidget *m_ocsTab;
 
     QLabel *m_indexStatusLabel;
     QPlainTextEdit *m_queryEdit;
@@ -117,6 +145,24 @@ protected:
     QTreeWidget *m_ptaResultsTree; // Changed from QListWidget
     QPushButton *m_ptaFillButton;
     QuestionPreviewWidget *m_ptaSelectedBankPreview;
+
+    OcsServer *m_ocsServer;
+    QLabel *m_ocsStatusLabel;
+    QLabel *m_ocsUrlLabel;
+    QLineEdit *m_ocsHostEdit;
+    QSpinBox *m_ocsPortSpinBox;
+    QDoubleSpinBox *m_ocsThresholdSpinBox;
+    QSpinBox *m_ocsTopKSpinBox;
+    QPushButton *m_ocsStartButton;
+    QPushButton *m_ocsStopButton;
+    QPushButton *m_ocsRefreshIndexButton;
+    QPushButton *m_ocsCopyConfigButton;
+    QPushButton *m_ocsExportUnmatchedButton;
+    QPushButton *m_ocsClearUnmatchedButton;
+    QLabel *m_ocsUnmatchedLabel;
+    QTextEdit *m_ocsLogEdit;
+    QPlainTextEdit *m_ocsConfigEdit;
+    QMap<QString, OcsUnmatchedQuestion> m_ocsUnmatchedQuestions;
 
     QString m_currentPtaId;
     QHash<QString, ParsedPtaQuestion> m_ptaQuestions;

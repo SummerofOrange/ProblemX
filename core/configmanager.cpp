@@ -30,6 +30,10 @@ bool ConfigManager::loadConfig(const QString &configPath)
 
     m_assistantSearchTopK = 5;
     m_assistantAutoThreshold = 0.85;
+    m_ocsServiceHost = "127.0.0.1";
+    m_ocsServicePort = 27419;
+    m_ocsServiceThreshold = 0.85;
+    m_ocsServiceTopK = 5;
     if (config.contains("Assistant") && config.value("Assistant").isObject()) {
         const QJsonObject assistant = config.value("Assistant").toObject();
         if (assistant.contains("SearchTopK")) {
@@ -37,6 +41,14 @@ bool ConfigManager::loadConfig(const QString &configPath)
         }
         if (assistant.contains("AutoThreshold")) {
             m_assistantAutoThreshold = qBound(0.0, assistant.value("AutoThreshold").toDouble(0.85), 1.0);
+        }
+        if (assistant.contains("OcsService") && assistant.value("OcsService").isObject()) {
+            const QJsonObject ocs = assistant.value("OcsService").toObject();
+            const QString host = ocs.value("Host").toString("127.0.0.1").trimmed();
+            m_ocsServiceHost = host.isEmpty() ? "127.0.0.1" : host;
+            m_ocsServicePort = qBound(1, ocs.value("Port").toInt(27419), 65535);
+            m_ocsServiceThreshold = qBound(0.0, ocs.value("Threshold").toDouble(0.85), 1.0);
+            m_ocsServiceTopK = qBound(1, ocs.value("TopK").toInt(5), 50);
         }
     }
     
@@ -69,6 +81,12 @@ bool ConfigManager::saveConfig(const QString &configPath)
     QJsonObject assistant;
     assistant["SearchTopK"] = m_assistantSearchTopK;
     assistant["AutoThreshold"] = m_assistantAutoThreshold;
+    QJsonObject ocs;
+    ocs["Host"] = m_ocsServiceHost;
+    ocs["Port"] = m_ocsServicePort;
+    ocs["Threshold"] = m_ocsServiceThreshold;
+    ocs["TopK"] = m_ocsServiceTopK;
+    assistant["OcsService"] = ocs;
     config["Assistant"] = assistant;
     
     // Save question banks
