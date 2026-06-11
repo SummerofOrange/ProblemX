@@ -50,6 +50,10 @@ QT_END_NAMESPACE
 class ConfigManager;
 class MarkdownRenderer;
 
+namespace Ui {
+class BankEditorWidget;
+}
+
 class BankEditorWidget : public QWidget
 {
     Q_OBJECT
@@ -126,6 +130,8 @@ private:
     void adjustOptionEditHeight(QTextEdit *edit);
     bool writeQuestionsToFile(const QString &filePath);
     
+    Ui::BankEditorWidget *ui;
+
     // UI Components - Main Layout
     QSplitter *m_mainSplitter;
     

@@ -1,4 +1,5 @@
 #include "configwidget.h"
+#include "ui_configwidget.h"
 #include "bankeditorwidget.h"
 #include "ptaimportdialog.h"
 #include "../core/configmanager.h"
@@ -39,6 +40,7 @@
 
 ConfigWidget::ConfigWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::ConfigWidget)
     , m_configManager(nullptr)
     , m_isLoading(false)
     , m_stackedWidget(nullptr)
@@ -52,6 +54,7 @@ ConfigWidget::ConfigWidget(QWidget *parent)
 
 ConfigWidget::~ConfigWidget()
 {
+    delete ui;
 }
 
 void ConfigWidget::setConfigManager(ConfigManager *configManager)
@@ -77,215 +80,71 @@ void ConfigWidget::refreshData()
 
 void ConfigWidget::setupUI()
 {
-    // Create stacked widget for main content and bank editor
-    m_stackedWidget = new QStackedWidget(this);
-    
-    // Create main config widget
-    QWidget *mainConfigWidget = new QWidget();
-    
-    // Create main splitter
-    m_mainSplitter = new QSplitter(Qt::Horizontal, mainConfigWidget);
-    
-    // Create left panel (subject tree)
-    m_leftPanel = new QWidget();
-    m_leftLayout = new QVBoxLayout(m_leftPanel);
-    m_leftLayout->setContentsMargins(10, 10, 10, 10);
-    m_leftLayout->setSpacing(10);
-    
-    // Subject tree
-    m_subjectLabel = new QLabel("科目和题库");
+    ui->setupUi(this);
+
+    m_stackedWidget = ui->stackedWidget;
+    m_mainSplitter = ui->mainSplitter;
+    m_leftPanel = ui->leftPanel;
+    m_leftLayout = ui->leftLayout;
+    m_subjectLabel = ui->subjectLabel;
+    m_subjectTree = ui->subjectTree;
+    m_subjectButtonLayout = ui->subjectButtonLayout;
+    m_addSubjectButton = ui->addSubjectButton;
+    m_createSubjectButton = ui->createSubjectButton;
+    m_removeSubjectButton = ui->removeSubjectButton;
+    m_removeBankButton = ui->removeBankButton;
+    m_rightPanel = ui->rightPanel;
+    m_rightLayout = ui->rightLayout;
+    m_subjectInfoGroup = ui->subjectInfoGroup;
+    m_subjectInfoLayout = ui->subjectInfoLayout;
+    m_subjectNameLabel = ui->subjectNameLabel;
+    m_subjectNameEdit = ui->subjectNameEdit;
+    m_subjectPathLabel = ui->subjectPathLabel;
+    m_subjectPathEdit = ui->subjectPathEdit;
+    m_browsePathButton = ui->browsePathButton;
+    m_subjectActionsGroup = ui->subjectActionsGroup;
+    m_subjectActionsLayout = ui->subjectActionsLayout;
+    m_createBankButton = ui->createBankButton;
+    m_autoFetchBankButton = ui->autoFetchBankButton;
+    m_bankDetailsGroup = ui->bankDetailsGroup;
+    m_bankDetailsLayout = ui->bankDetailsLayout;
+    m_bankNameLabel = ui->bankNameLabel;
+    m_bankTypeLabel = ui->bankTypeLabel;
+    m_totalQuestionsLabel = ui->totalQuestionsLabel;
+    m_bankStatusLabel = ui->bankStatusLabel;
+    m_extractCountLabel = ui->extractCountLabel;
+    m_extractCountSpinBox = ui->extractCountSpinBox;
+    m_extractCountSlider = ui->extractCountSlider;
+    m_extractPercentLabel = ui->extractPercentLabel;
+    m_editBankButton = ui->editBankButton;
+    m_statisticsGroup = ui->statisticsGroup;
+    m_statisticsLayout = ui->statisticsLayout;
+    m_totalSubjectsLabel = ui->totalSubjectsLabel;
+    m_totalBanksLabel = ui->totalBanksLabel;
+    m_enabledBanksLabel = ui->enabledBanksLabel;
+    m_statisticsQuestionsLabel = ui->statisticsQuestionsLabel;
+    m_shuffleQuestionsCheckBox = ui->shuffleQuestionsCheckBox;
+    m_configProgressBar = ui->configProgressBar;
+    m_descriptionGroup = ui->descriptionGroup;
+    m_descriptionLayout = ui->descriptionLayout;
+    m_descriptionEdit = ui->descriptionEdit;
+    m_bottomButtonLayout = ui->bottomButtonLayout;
+    m_saveButton = ui->saveButton;
+    m_backButton = ui->backButton;
+    m_bankEditorWidget = ui->bankEditorWidget;
+
     m_subjectLabel->setObjectName("sectionLabel");
-    
-    m_subjectTree = new QTreeWidget();
-    m_subjectTree->setHeaderLabels(QStringList() << "名称" << "状态" << "题目数");
-    m_subjectTree->setRootIsDecorated(true);
-    m_subjectTree->setAlternatingRowColors(true);
-    m_subjectTree->setSelectionMode(QAbstractItemView::SingleSelection);
     m_subjectTree->header()->setStretchLastSection(false);
     m_subjectTree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_subjectTree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_subjectTree->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    
-    // Subject buttons
-    m_subjectButtonLayout = new QHBoxLayout();
-    m_addSubjectButton = new QPushButton("添加科目");
-    m_createSubjectButton = new QPushButton("创建科目");
-    m_removeSubjectButton = new QPushButton("删除科目");
-    m_removeBankButton = new QPushButton("删除题库"); // 新增删除题库按钮
-    
-    m_subjectButtonLayout->addWidget(m_addSubjectButton);
-    m_subjectButtonLayout->addWidget(m_createSubjectButton);
-    m_subjectButtonLayout->addWidget(m_removeSubjectButton);
-    m_subjectButtonLayout->addWidget(m_removeBankButton); // 添加到布局
-    m_subjectButtonLayout->addStretch();
-    
-    m_leftLayout->addWidget(m_subjectLabel);
-    m_leftLayout->addWidget(m_subjectTree);
-    m_leftLayout->addLayout(m_subjectButtonLayout);
-    
-    // Create right panel (details)
-    m_rightPanel = new QWidget();
-    m_rightLayout = new QVBoxLayout(m_rightPanel);
-    m_rightLayout->setContentsMargins(10, 10, 10, 10);
-    m_rightLayout->setSpacing(15);
-    
-    // Subject Info Group
-    m_subjectInfoGroup = new QGroupBox("科目信息");
-    m_subjectInfoLayout = new QGridLayout(m_subjectInfoGroup);
-    
-    m_subjectNameLabel = new QLabel("科目名称:");
-    m_subjectNameEdit = new QLineEdit();
-    m_subjectNameEdit->setReadOnly(true);
-    
-    m_subjectPathLabel = new QLabel("题库路径:");
-    m_subjectPathEdit = new QLineEdit();
-    m_subjectPathEdit->setReadOnly(true);
-    m_browsePathButton = new QPushButton("浏览");
-    
-    m_subjectInfoLayout->addWidget(m_subjectNameLabel, 0, 0);
-    m_subjectInfoLayout->addWidget(m_subjectNameEdit, 0, 1, 1, 2);
-    m_subjectInfoLayout->addWidget(m_subjectPathLabel, 1, 0);
-    m_subjectInfoLayout->addWidget(m_subjectPathEdit, 1, 1);
-    m_subjectInfoLayout->addWidget(m_browsePathButton, 1, 2);
 
-    // Subject Actions Group
-    m_subjectActionsGroup = new QGroupBox("题库操作");
-    m_subjectActionsLayout = new QHBoxLayout(m_subjectActionsGroup);
-    m_createBankButton = new QPushButton("创建题库");
-    m_autoFetchBankButton = new QPushButton("自动获取题库");
-    m_subjectActionsLayout->addWidget(m_createBankButton);
-    m_subjectActionsLayout->addWidget(m_autoFetchBankButton);
-    m_subjectActionsLayout->addStretch();
-    
-    // Bank Details Group
-    m_bankDetailsGroup = new QGroupBox("题库详情");
-    m_bankDetailsLayout = new QGridLayout(m_bankDetailsGroup);
-    
-    m_bankNameLabel = new QLabel("题库名称: --");
-    m_bankTypeLabel = new QLabel("题库类型: --");
-    m_totalQuestionsLabel = new QLabel("题目总数: --");
-    m_bankStatusLabel = new QLabel("状态: --");
-    
-    m_extractCountLabel = new QLabel("抽取数量:");
-    m_extractCountSpinBox = new QSpinBox();
-    m_extractCountSpinBox->setMinimum(1);
-    m_extractCountSpinBox->setMaximum(9999);
-    m_extractCountSpinBox->setMinimumWidth(110);
-    m_extractCountSpinBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    m_extractPercentLabel = new QLabel("(0%)");
-    m_extractCountSlider = new QSlider(Qt::Horizontal);
-    m_extractCountSlider->setMinimum(1);
-    m_extractCountSlider->setMaximum(9999);
-    m_extractCountSlider->setValue(1);
-    m_extractCountSlider->setEnabled(false);
-    m_extractCountSlider->setMaximumWidth(550);
-    m_extractCountSlider->setMinimumWidth(450);
-    m_extractPercentLabel->setVisible(false);
-    
-    m_bankDetailsLayout->addWidget(m_bankNameLabel, 0, 0, 1, 3);
-    m_bankDetailsLayout->addWidget(m_bankTypeLabel, 1, 0, 1, 3);
-    m_bankDetailsLayout->addWidget(m_totalQuestionsLabel, 2, 0, 1, 3);
-    m_bankDetailsLayout->addWidget(m_bankStatusLabel, 3, 0, 1, 3);
-
-    QHBoxLayout *extractCountRowLayout = new QHBoxLayout();
-    extractCountRowLayout->addWidget(m_extractCountLabel);
-    extractCountRowLayout->addWidget(m_extractCountSlider);
-    extractCountRowLayout->addWidget(m_extractCountSpinBox);
-    m_bankDetailsLayout->addLayout(extractCountRowLayout, 4, 0, 1, 3);
-    
-    // Add edit bank button
-    m_editBankButton = new QPushButton("编辑题库");
     m_editBankButton->setObjectName("editBankButton");
-    m_bankDetailsLayout->addWidget(m_editBankButton, 5, 0, 1, 3);
-    
-    // Statistics Group
-    m_statisticsGroup = new QGroupBox("统计信息");
-    m_statisticsLayout = new QGridLayout(m_statisticsGroup);
-    
-    m_totalSubjectsLabel = new QLabel("总科目数: 0");
-    m_totalBanksLabel = new QLabel("总题库数: 0");
-    m_enabledBanksLabel = new QLabel("已启用: 0");
-    m_statisticsQuestionsLabel = new QLabel("总题目数: 0");
-    m_shuffleQuestionsCheckBox = new QCheckBox("乱序题目");
-    
-    m_configProgressBar = new QProgressBar();
-    m_configProgressBar->setTextVisible(true);
-    m_configProgressBar->setFormat("配置完成度: %p%");
-    
-    m_statisticsLayout->addWidget(m_totalSubjectsLabel, 0, 0);
-    m_statisticsLayout->addWidget(m_totalBanksLabel, 0, 1);
-    m_statisticsLayout->addWidget(m_enabledBanksLabel, 1, 0);
-    m_statisticsLayout->addWidget(m_statisticsQuestionsLabel, 1, 1);
-    m_statisticsLayout->addWidget(m_shuffleQuestionsCheckBox, 2, 0, 1, 2);
-    m_statisticsLayout->addWidget(m_configProgressBar, 3, 0, 1, 2);
-    
-    // Description Group
-    m_descriptionGroup = new QGroupBox("说明");
-    m_descriptionLayout = new QVBoxLayout(m_descriptionGroup);
-    
-    m_descriptionEdit = new QTextEdit();
-    m_descriptionEdit->setMaximumHeight(100);
-    m_descriptionEdit->setPlainText(
-        "配置说明:\n"
-        "1. 选择科目查看其包含的题库\n"
-        "2. 选择题库可以启用/禁用和设置抽取数量\n"
-        "3. 抽取数量不能超过题库总题目数\n"
-        "4. 至少启用一个题库才能开始练习"
-    );
-    m_descriptionEdit->setReadOnly(true);
-    
-    m_descriptionLayout->addWidget(m_descriptionEdit);
-    
-    // Add groups to right layout
-    m_rightLayout->addWidget(m_subjectInfoGroup);
-    m_rightLayout->addWidget(m_subjectActionsGroup);
-    m_rightLayout->addWidget(m_bankDetailsGroup);
-    m_rightLayout->addWidget(m_statisticsGroup);
-    m_rightLayout->addWidget(m_descriptionGroup);
-    m_rightLayout->addStretch();
-    
-    // 初始状态下隐藏题库详情组件
-    m_bankDetailsGroup->setVisible(false);
-    m_subjectActionsGroup->setVisible(false);
-    
-    // Bottom buttons
-    m_bottomButtonLayout = new QHBoxLayout();
-    m_saveButton = new QPushButton("保存配置");
-    m_backButton = new QPushButton("返回");
-    
     m_saveButton->setObjectName("primaryButton");
     m_backButton->setObjectName("secondaryButton");
-    
-    m_bottomButtonLayout->addStretch();
-    m_bottomButtonLayout->addWidget(m_saveButton);
-    m_bottomButtonLayout->addWidget(m_backButton);
-    
-    m_rightLayout->addLayout(m_bottomButtonLayout);
-    
-    // Add panels to splitter
-    m_mainSplitter->addWidget(m_leftPanel);
-    m_mainSplitter->addWidget(m_rightPanel);
+
     m_mainSplitter->setStretchFactor(0, 1);
     m_mainSplitter->setStretchFactor(1, 2);
-    
-    // Main layout for config widget
-    QHBoxLayout *mainConfigLayout = new QHBoxLayout(mainConfigWidget);
-    mainConfigLayout->setContentsMargins(0, 0, 0, 0);
-    mainConfigLayout->addWidget(m_mainSplitter);
-    
-    // Create bank editor widget
-    m_bankEditorWidget = new BankEditorWidget();
-    
-    // Add widgets to stacked widget
-    m_stackedWidget->addWidget(mainConfigWidget);
-    m_stackedWidget->addWidget(m_bankEditorWidget);
-    
-    // Main layout
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(m_stackedWidget);
-    
-    setLayout(mainLayout);
 }
 
 void ConfigWidget::setupConnections()

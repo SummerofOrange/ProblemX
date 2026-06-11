@@ -28,6 +28,9 @@
 #include "../utils/markdownrenderer.h"  // 新增
 
 QT_BEGIN_NAMESPACE
+namespace Ui {
+class PracticeWidget;
+}
 class QLabel;
 class QPushButton;
 class QRadioButton;
@@ -127,6 +130,8 @@ private:
     bool confirmFinish();
     QVector<int> getUnansweredQuestions() const;
     
+    Ui::PracticeWidget *ui;
+
     // UI Components - Main Layout
     QSplitter *m_mainSplitter;
     

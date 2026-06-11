@@ -31,6 +31,10 @@
 #include "../core/wronganswerset.h"
 #include "../utils/markdownrenderer.h"  // 新增
 
+namespace Ui {
+class ReviewWidget;
+}
+
 class ConfigManager;
 class PracticeManager;
 
@@ -121,6 +125,8 @@ private:
     QVector<WrongAnswerItem> m_currentItems;    // 当前显示的错题项目
     QVector<WrongAnswerItem> m_filteredItems;   // 筛选后的错题项目
     
+    Ui::ReviewWidget *ui;
+
     // UI Components
     QSplitter *m_mainSplitter;
     

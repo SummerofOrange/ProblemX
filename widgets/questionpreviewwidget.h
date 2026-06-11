@@ -11,6 +11,10 @@ class QScrollArea;
 class QWidget;
 class MarkdownRenderer;
 
+namespace Ui {
+class QuestionPreviewWidget;
+}
+
 class QuestionPreviewWidget : public QWidget
 {
     Q_OBJECT
@@ -26,6 +30,8 @@ private:
     void setupUI();
     void rebuildChoices(const Question &question);
     QString buildAnswerText(const Question &question) const;
+
+    Ui::QuestionPreviewWidget *ui;
 
     QVBoxLayout *m_mainLayout;
     QLabel *m_typeLabel;

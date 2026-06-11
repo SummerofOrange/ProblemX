@@ -17,6 +17,10 @@ class QCheckBox;
 class QLineEdit;
 class QToolButton;
 
+namespace Ui {
+class PtaImportDialog;
+}
+
 class PtaImportDialog : public QDialog
 {
     Q_OBJECT
@@ -45,6 +49,8 @@ private:
     ConfigManager *m_configManager;
     QString m_subjectName;
     QString m_subjectPath;
+
+    Ui::PtaImportDialog *ui;
 
     QSplitter *m_splitter;
     QWidget *m_leftPanel;

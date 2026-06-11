@@ -1,4 +1,5 @@
 #include "reviewwidget.h"
+#include "ui_reviewwidget.h"
 #include "../core/configmanager.h"
 #include "../core/practicemanager.h"
 #include "../models/question.h"
@@ -45,6 +46,7 @@
 
 ReviewWidget::ReviewWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::ReviewWidget)
     , m_configManager(nullptr)
     , m_practiceManager(nullptr)
     , m_wrongAnswerSet(nullptr)
@@ -57,6 +59,7 @@ ReviewWidget::ReviewWidget(QWidget *parent)
 
 ReviewWidget::~ReviewWidget()
 {
+    delete ui;
 }
 
 void ReviewWidget::setConfigManager(ConfigManager *configManager)
@@ -97,286 +100,104 @@ void ReviewWidget::refreshWrongAnswers()
 
 void ReviewWidget::setupUI()
 {
-    // Create main splitter
-    m_mainSplitter = new QSplitter(Qt::Horizontal, this);
-    
-    // Create left panel
-    m_leftPanel = new QWidget();
-    m_leftPanel->setMaximumWidth(450);  // 限制左侧面板最大宽度
-    m_leftPanel->setMinimumWidth(350);  // 设置左侧面板最小宽度
-    m_leftLayout = new QVBoxLayout(m_leftPanel);
-    m_leftLayout->setContentsMargins(10, 10, 10, 10);
-    m_leftLayout->setSpacing(10);
-    
-    // Filter group
-    m_filterGroup = new QGroupBox("筛选条件");
-    m_filterGroup->setMaximumHeight(200);  // 限制筛选组高度
-    m_filterLayout = new QGridLayout(m_filterGroup);
-    m_filterLayout->setSpacing(6);
-    m_filterLayout->setContentsMargins(8, 8, 8, 8);
-    
-    m_subjectLabel = new QLabel("科目:");
-    m_subjectCombo = new QComboBox();
+    ui->setupUi(this);
+
+    m_mainSplitter = ui->mainSplitter;
+    m_leftPanel = ui->leftPanel;
+    m_leftLayout = ui->leftLayout;
+    m_filterGroup = ui->filterGroup;
+    m_filterLayout = ui->filterLayout;
+    m_subjectLabel = ui->subjectLabel;
+    m_subjectCombo = ui->subjectCombo;
+    m_typeLabel = ui->typeLabel;
+    m_typeCombo = ui->typeCombo;
+    m_dateLabel = ui->dateLabel;
+    m_dateFromEdit = ui->dateFromEdit;
+    m_dateToEdit = ui->dateToEdit;
+    m_showResolvedCheck = ui->showResolvedCheck;
+    m_sortLabel = ui->sortLabel;
+    m_sortCombo = ui->sortCombo;
+    m_refreshButton = ui->refreshButton;
+    m_statisticsGroup = ui->statisticsGroup;
+    m_statisticsLayout = ui->statisticsLayout;
+    m_totalLabel = ui->totalLabel;
+    m_unresolvedLabel = ui->unresolvedLabel;
+    m_resolvedLabel = ui->resolvedLabel;
+    m_selectedLabel = ui->selectedLabel;
+    m_resolvedProgressBar = ui->resolvedProgressBar;
+    m_listGroup = ui->listGroup;
+    m_listLayout = ui->listLayout;
+    m_wrongAnswersList = ui->wrongAnswersList;
+    m_selectionLayout = ui->selectionLayout;
+    m_selectAllButton = ui->selectAllButton;
+    m_selectNoneButton = ui->selectNoneButton;
+    m_actionLayout = ui->actionLayout;
+    m_startReviewButton = ui->startReviewButton;
+    m_markResolvedButton = ui->markResolvedButton;
+    m_markUnresolvedButton = ui->markUnresolvedButton;
+    m_deleteSelectedButton = ui->deleteSelectedButton;
+    m_clearResolvedButton = ui->clearResolvedButton;
+    m_importExportLayout = ui->importExportLayout;
+    m_exportButton = ui->exportButton;
+    m_importButton = ui->importButton;
+    m_controlLayout = ui->controlLayout;
+    m_backButton = ui->backButton;
+    m_rightPanel = ui->rightPanel;
+    m_rightLayout = ui->rightLayout;
+    m_detailsGroup = ui->detailsGroup;
+    m_detailsLayout = ui->detailsLayout;
+    m_detailsScrollArea = ui->detailsScrollArea;
+    m_detailsContent = ui->detailsContent;
+    m_detailsContentLayout = ui->detailsContentLayout;
+    m_detailSubjectLabel = ui->detailSubjectLabel;
+    m_detailTypeLabel = ui->detailTypeLabel;
+    m_detailQuestionRenderer = ui->detailQuestionRenderer;
+    m_detailImageLabel = ui->detailImageLabel;
+    m_detailChoicesRenderer = ui->detailChoicesRenderer;
+    m_detailCorrectAnswerRenderer = ui->detailCorrectAnswerRenderer;
+    m_detailUserAnswerRenderer = ui->detailUserAnswerRenderer;
+    m_detailTimestampLabel = ui->detailTimestampLabel;
+    m_detailReviewCountLabel = ui->detailReviewCountLabel;
+    m_detailStatusLabel = ui->detailStatusLabel;
+
     m_subjectCombo->addItem("全部科目", "");
-    m_subjectCombo->setMaximumHeight(28);
-    
-    m_typeLabel = new QLabel("题型:");
-    m_typeCombo = new QComboBox();
     m_typeCombo->addItem("全部题型", "");
     m_typeCombo->addItem("选择题", "Choice");
     m_typeCombo->addItem("判断题", "TrueOrFalse");
     m_typeCombo->addItem("填空题", "FillBlank");
     m_typeCombo->addItem("多选题", "MultiChoice");
-    m_typeCombo->setMaximumHeight(28);
-    
-    m_dateLabel = new QLabel("日期:");
-    m_dateFromEdit = new QDateEdit();
-    m_dateFromEdit->setDate(QDate::currentDate().addDays(-30));
-    m_dateFromEdit->setCalendarPopup(true);
-    m_dateFromEdit->setMaximumHeight(28);
-    m_dateFromEdit->setDisplayFormat("MM-dd");
-    m_dateToEdit = new QDateEdit();
-    m_dateToEdit->setDate(QDate::currentDate());
-    m_dateToEdit->setCalendarPopup(true);
-    m_dateToEdit->setMaximumHeight(28);
-    m_dateToEdit->setDisplayFormat("MM-dd");
-    
-    m_showResolvedCheck = new QCheckBox("显示已解决");
-    m_showResolvedCheck->setChecked(false);
-    
-    m_sortLabel = new QLabel("排序:");
-    m_sortCombo = new QComboBox();
     m_sortCombo->addItem("时间降序", "time_desc");
     m_sortCombo->addItem("时间升序", "time_asc");
     m_sortCombo->addItem("复习次数降序", "review_desc");
     m_sortCombo->addItem("复习次数升序", "review_asc");
-    m_sortCombo->setMaximumHeight(28);
-    
-    m_refreshButton = new QPushButton("刷新");
+
+    m_dateFromEdit->setDate(QDate::currentDate().addDays(-30));
+    m_dateToEdit->setDate(QDate::currentDate());
+
     m_refreshButton->setObjectName("refreshButton");
-    m_refreshButton->setMaximumHeight(28);
-    
-    // 使用更紧凑的布局
-    m_filterLayout->addWidget(m_subjectLabel, 0, 0);
-    m_filterLayout->addWidget(m_subjectCombo, 0, 1);
-    m_filterLayout->addWidget(m_typeLabel, 0, 2);
-    m_filterLayout->addWidget(m_typeCombo, 0, 3);
-    
-    m_filterLayout->addWidget(m_dateLabel, 1, 0);
-    QHBoxLayout *dateLayout = new QHBoxLayout();
-    dateLayout->addWidget(m_dateFromEdit);
-    dateLayout->addWidget(new QLabel("至"));
-    dateLayout->addWidget(m_dateToEdit);
-    dateLayout->setSpacing(4);
-    QWidget *dateWidget = new QWidget();
-    dateWidget->setLayout(dateLayout);
-    m_filterLayout->addWidget(dateWidget, 1, 1, 1, 3);
-    
-    m_filterLayout->addWidget(m_sortLabel, 2, 0);
-    m_filterLayout->addWidget(m_sortCombo, 2, 1);
-    m_filterLayout->addWidget(m_showResolvedCheck, 2, 2);
-    m_filterLayout->addWidget(m_refreshButton, 2, 3);
-    
-    // Statistics group
-    m_statisticsGroup = new QGroupBox("统计信息");
-    m_statisticsGroup->setMaximumHeight(120);  // 限制统计组高度
-    m_statisticsLayout = new QGridLayout(m_statisticsGroup);
-    m_statisticsLayout->setSpacing(6);
-    m_statisticsLayout->setContentsMargins(8, 8, 8, 8);
-    
-    m_totalLabel = new QLabel("总计: 0");
-    m_totalLabel->setStyleSheet("font-weight: bold; color: #2c3e50;");
-    m_unresolvedLabel = new QLabel("未解决: 0");
-    m_unresolvedLabel->setStyleSheet("color: #e74c3c;");
-    m_resolvedLabel = new QLabel("已解决: 0");
-    m_resolvedLabel->setStyleSheet("color: #27ae60;");
-    m_selectedLabel = new QLabel("已选择: 0");
-    m_selectedLabel->setStyleSheet("color: #3498db;");
-    m_resolvedProgressBar = new QProgressBar();
-    m_resolvedProgressBar->setTextVisible(true);
-    m_resolvedProgressBar->setFormat("解决率: %p%");
-    m_resolvedProgressBar->setMaximumHeight(20);
-    
-    m_statisticsLayout->addWidget(m_totalLabel, 0, 0);
-    m_statisticsLayout->addWidget(m_unresolvedLabel, 0, 1);
-    m_statisticsLayout->addWidget(m_resolvedLabel, 1, 0);
-    m_statisticsLayout->addWidget(m_selectedLabel, 1, 1);
-    m_statisticsLayout->addWidget(m_resolvedProgressBar, 2, 0, 1, 2);
-    
-    // Wrong answers list group
-    m_listGroup = new QGroupBox("错题列表");
-    m_listLayout = new QVBoxLayout(m_listGroup);
-    
-    m_wrongAnswersList = new QListWidget();
-    m_wrongAnswersList->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    
-    m_listLayout->addWidget(m_wrongAnswersList);
-    
-    // Selection buttons
-    m_selectionLayout = new QHBoxLayout();
-    m_selectAllButton = new QPushButton("全选");
-    m_selectAllButton->setMaximumHeight(28);
-    m_selectNoneButton = new QPushButton("全不选");
-    m_selectNoneButton->setMaximumHeight(28);
-    
-    m_selectionLayout->addWidget(m_selectAllButton);
-    m_selectionLayout->addWidget(m_selectNoneButton);
-    m_selectionLayout->addStretch();
-    
-    // Action buttons - 分成两行显示
-    m_actionLayout = new QGridLayout();
-    m_actionLayout->setSpacing(4);
-    
-    m_startReviewButton = new QPushButton("开始复习");
     m_startReviewButton->setObjectName("startReviewButton");
-    m_startReviewButton->setMaximumHeight(28);
-    
-    m_markResolvedButton = new QPushButton("标记已解决");
-    m_markResolvedButton->setMaximumHeight(28);
-    
-    m_markUnresolvedButton = new QPushButton("标记未解决");
-    m_markUnresolvedButton->setMaximumHeight(28);
-    
-    m_deleteSelectedButton = new QPushButton("删除选中");
     m_deleteSelectedButton->setObjectName("deleteButton");
-    m_deleteSelectedButton->setMaximumHeight(28);
-    
-    m_clearResolvedButton = new QPushButton("清除已解决");
     m_clearResolvedButton->setObjectName("clearButton");
-    m_clearResolvedButton->setMaximumHeight(28);
-    
-    // 第一行：主要操作
-    m_actionLayout->addWidget(m_startReviewButton, 0, 0);
-    m_actionLayout->addWidget(m_markResolvedButton, 0, 1);
-    m_actionLayout->addWidget(m_markUnresolvedButton, 0, 2);
-    
-    // 第二行：删除操作
-    m_actionLayout->addWidget(m_deleteSelectedButton, 1, 0);
-    m_actionLayout->addWidget(m_clearResolvedButton, 1, 1);
-    
-    // Import/Export buttons
-    m_importExportLayout = new QHBoxLayout();
-    m_exportButton = new QPushButton("导出错题");
-    m_exportButton->setMaximumHeight(28);
-    m_importButton = new QPushButton("导入错题");
-    m_importButton->setMaximumHeight(28);
-    
-    m_importExportLayout->addWidget(m_exportButton);
-    m_importExportLayout->addWidget(m_importButton);
-    m_importExportLayout->addStretch();
-    
-    // Control buttons
-    m_controlLayout = new QHBoxLayout();
-    m_backButton = new QPushButton("返回");
     m_backButton->setObjectName("backButton");
-    m_backButton->setMaximumHeight(28);
-    
-    m_controlLayout->addStretch();
-    m_controlLayout->addWidget(m_backButton);
-    
-    // Add to left layout
-    m_leftLayout->addWidget(m_filterGroup);
-    m_leftLayout->addWidget(m_statisticsGroup);
-    m_leftLayout->addWidget(m_listGroup, 1);
-    m_leftLayout->addLayout(m_selectionLayout);
-    m_leftLayout->addLayout(m_actionLayout);
-    m_leftLayout->addLayout(m_importExportLayout);
-    m_leftLayout->addLayout(m_controlLayout);
-    
-    // Create right panel
-    m_rightPanel = new QWidget();
-    m_rightPanel->setMinimumWidth(400);  // 设置右侧面板最小宽度
-    m_rightLayout = new QVBoxLayout(m_rightPanel);
-    m_rightLayout->setContentsMargins(10, 10, 10, 10);
-    m_rightLayout->setSpacing(10);
-    
-    // Details group
-    m_detailsGroup = new QGroupBox("错题详情");
-    m_detailsLayout = new QVBoxLayout(m_detailsGroup);
-    
-    m_detailsScrollArea = new QScrollArea();
-    m_detailsScrollArea->setWidgetResizable(true);
-    m_detailsScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_detailsScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    
-    m_detailsContent = new QWidget();
-    m_detailsContentLayout = new QVBoxLayout(m_detailsContent);
-    m_detailsContentLayout->setContentsMargins(10, 10, 10, 10);
-    m_detailsContentLayout->setSpacing(10);
-    
-    // Detail labels
-    m_detailSubjectLabel = new QLabel();
     m_detailSubjectLabel->setObjectName("detailSubject");
-    m_detailTypeLabel = new QLabel();
     m_detailTypeLabel->setObjectName("detailType");
-    m_detailQuestionRenderer = new MarkdownRenderer();
     m_detailQuestionRenderer->setObjectName("detailQuestion");
-    m_detailQuestionRenderer->setAutoResize(true, 400);  // 启用自动适配
-    m_detailImageLabel = new QLabel();
-    m_detailImageLabel->setAlignment(Qt::AlignCenter);
-    m_detailImageLabel->setScaledContents(false);
-    m_detailImageLabel->setVisible(false);
-    m_detailChoicesRenderer = new MarkdownRenderer();
     m_detailChoicesRenderer->setObjectName("detailChoices");
-    m_detailChoicesRenderer->setAutoResize(true, 300);  // 启用自动适配
-    m_detailCorrectAnswerRenderer = new MarkdownRenderer();
     m_detailCorrectAnswerRenderer->setObjectName("detailCorrectAnswer");
-    m_detailCorrectAnswerRenderer->setAutoResize(true, 200);  // 启用自动适配
-    m_detailUserAnswerRenderer = new MarkdownRenderer();
     m_detailUserAnswerRenderer->setObjectName("detailUserAnswer");
-    m_detailUserAnswerRenderer->setAutoResize(true, 200);  // 启用自动适配
-    m_detailTimestampLabel = new QLabel();
     m_detailTimestampLabel->setObjectName("detailTimestamp");
-    m_detailReviewCountLabel = new QLabel();
     m_detailReviewCountLabel->setObjectName("detailReviewCount");
-    m_detailStatusLabel = new QLabel();
     m_detailStatusLabel->setObjectName("detailStatus");
-    
-    m_detailsContentLayout->addWidget(m_detailSubjectLabel);
-    m_detailsContentLayout->addWidget(m_detailTypeLabel);
-    m_detailsContentLayout->addWidget(m_detailQuestionRenderer);
-    m_detailsContentLayout->addWidget(m_detailImageLabel);
-    m_detailsContentLayout->addWidget(m_detailChoicesRenderer);
-    m_detailsContentLayout->addWidget(m_detailCorrectAnswerRenderer);
-    m_detailsContentLayout->addWidget(m_detailUserAnswerRenderer);
-    m_detailsContentLayout->addWidget(m_detailTimestampLabel);
-    m_detailsContentLayout->addWidget(m_detailReviewCountLabel);
-    m_detailsContentLayout->addWidget(m_detailStatusLabel);
-    m_detailsContentLayout->addStretch();
-    
-    m_detailsScrollArea->setWidget(m_detailsContent);
-    m_detailsLayout->addWidget(m_detailsScrollArea);
-    
-    m_rightLayout->addWidget(m_detailsGroup);
-    
-    // Add panels to splitter
-    m_mainSplitter->addWidget(m_leftPanel);
-    m_mainSplitter->addWidget(m_rightPanel);
-    
-    // 设置初始大小比例：左侧400px，右侧占剩余空间
+
+    m_detailQuestionRenderer->setAutoResize(true, 400);
+    m_detailChoicesRenderer->setAutoResize(true, 300);
+    m_detailCorrectAnswerRenderer->setAutoResize(true, 200);
+    m_detailUserAnswerRenderer->setAutoResize(true, 200);
+
     m_mainSplitter->setSizes({400, 600});
-    m_mainSplitter->setStretchFactor(0, 0);  // 左侧面板不拉伸
-    m_mainSplitter->setStretchFactor(1, 1);  // 右侧面板可拉伸
-    
-    // 设置分割器样式
-    m_mainSplitter->setHandleWidth(3);
-    m_mainSplitter->setStyleSheet(
-        "QSplitter::handle {"
-        "    background-color: #dee2e6;"
-        "    border: 1px solid #adb5bd;"
-        "}"
-        "QSplitter::handle:hover {"
-        "    background-color: #4A90E2;"
-        "}");
-    
-    // Main layout
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(m_mainSplitter);
-    
-    setLayout(mainLayout);
-    
-    // Initialize details
+    m_mainSplitter->setStretchFactor(0, 0);
+    m_mainSplitter->setStretchFactor(1, 1);
+
     clearWrongAnswerDetails();
 }
 

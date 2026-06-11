@@ -17,8 +17,6 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_centralWidget(nullptr)
-    , m_mainLayout(nullptr)
     , m_stackedWidget(nullptr)
     , m_startWidget(nullptr)
     , m_configWidget(nullptr)
@@ -33,9 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Set window properties
     setWindowTitle("ProblemX - 练习系统");
-    setMinimumSize(1000, 700);
-    resize(1400, 900);
-    
+
     initializeManagers();
     setupUI();
     setupConnections();
@@ -68,15 +64,7 @@ void MainWindow::initializeManagers()
 
 void MainWindow::setupUI()
 {
-    // Create central widget and layout
-    m_centralWidget = new QWidget();
-    m_mainLayout = new QVBoxLayout(m_centralWidget);
-    m_mainLayout->setContentsMargins(0, 0, 0, 0);
-    m_mainLayout->setSpacing(0);
-    
-    // Create stacked widget
-    m_stackedWidget = new QStackedWidget();
-    m_mainLayout->addWidget(m_stackedWidget);
+    m_stackedWidget = ui->stackedWidget;
     
     // Create widgets
     m_startWidget = new StartWidget();
@@ -102,9 +90,6 @@ void MainWindow::setupUI()
     m_stackedWidget->addWidget(m_practiceWidget);
     m_stackedWidget->addWidget(m_reviewWidget);
     m_stackedWidget->addWidget(m_questionAssistantWidget);
-    
-    // Set central widget
-    setCentralWidget(m_centralWidget);
 }
 
 void MainWindow::setupConnections()
