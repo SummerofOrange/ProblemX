@@ -1,7 +1,6 @@
 #include "startwidget.h"
+#include "ui_startwidget.h"
 #include "../core/configmanager.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QPixmap>
@@ -19,6 +18,7 @@
 
 StartWidget::StartWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::StartWidget)
     , m_configManager(nullptr)
     , m_hasCheckpoint(false)
 {
@@ -30,6 +30,7 @@ StartWidget::StartWidget(QWidget *parent)
 
 StartWidget::~StartWidget()
 {
+    delete ui;
 }
 
 void StartWidget::setConfigManager(ConfigManager *configManager)
@@ -40,21 +41,27 @@ void StartWidget::setConfigManager(ConfigManager *configManager)
 
 void StartWidget::setupUI()
 {
-    // Create main layout
-    m_mainLayout = new QVBoxLayout(this);
-    m_mainLayout->setContentsMargins(50, 30, 50, 30);
-    m_mainLayout->setSpacing(20);
-    
-    // Create title section
-    m_titleLayout = new QVBoxLayout();
-    m_titleLayout->setSpacing(10);
-    
-    // Logo section
-    m_logoLayout = new QHBoxLayout();
-    m_logoLabel = new QLabel();
-    m_logoLabel->setFixedSize(64, 64);
-    m_logoLabel->setScaledContents(true);
-    
+    ui->setupUi(this);
+
+    m_titleLabel = ui->titleLabel;
+    m_subtitleLabel = ui->subtitleLabel;
+    m_logoLabel = ui->logoLabel;
+    m_startButton = ui->startButton;
+    m_resumeButton = ui->resumeButton;
+    m_configButton = ui->configButton;
+    m_reviewButton = ui->reviewButton;
+    m_assistantButton = ui->assistantButton;
+    m_aboutButton = ui->aboutButton;
+    m_exitButton = ui->exitButton;
+
+    m_startButton->setObjectName("primaryButton");
+    m_resumeButton->setObjectName("secondaryButton");
+    m_configButton->setObjectName("secondaryButton");
+    m_reviewButton->setObjectName("secondaryButton");
+    m_assistantButton->setObjectName("secondaryButton");
+    m_aboutButton->setObjectName("secondaryButton");
+    m_exitButton->setObjectName("exitButton");
+
     // Try to load logo, create a simple one if not found
     QPixmap logo(64, 64);
     logo.fill(Qt::transparent);
@@ -79,75 +86,6 @@ void StartWidget::setupUI()
     painter.drawText(QRect(8, 8, 48, 48), Qt::AlignCenter, "P");
     
     m_logoLabel->setPixmap(logo);
-    m_logoLayout->addStretch();
-    m_logoLayout->addWidget(m_logoLabel);
-    m_logoLayout->addStretch();
-    
-    // Title and subtitle
-    m_titleLabel = new QLabel("ProblemX");
-    m_titleLabel->setAlignment(Qt::AlignCenter);
-    m_titleLabel->setObjectName("titleLabel");
-    
-    m_subtitleLabel = new QLabel("智能刷题系统");
-    m_subtitleLabel->setAlignment(Qt::AlignCenter);
-    m_subtitleLabel->setObjectName("subtitleLabel");
-    
-    m_titleLayout->addLayout(m_logoLayout);
-    m_titleLayout->addWidget(m_titleLabel);
-    m_titleLayout->addWidget(m_subtitleLabel);
-    
-    // Create button section
-    m_buttonLayout = new QVBoxLayout();
-    m_buttonLayout->setSpacing(15);
-    
-    // Create buttons
-    m_startButton = new QPushButton("开始刷题");
-    m_startButton->setObjectName("primaryButton");
-    m_startButton->setMinimumHeight(50);
-    
-    m_resumeButton = new QPushButton("继续练习");
-    m_resumeButton->setObjectName("secondaryButton");
-    m_resumeButton->setMinimumHeight(45);
-    m_resumeButton->setVisible(false);
-    
-    m_configButton = new QPushButton("配置程序");
-    m_configButton->setObjectName("secondaryButton");
-    m_configButton->setMinimumHeight(45);
-    
-    m_reviewButton = new QPushButton("错题复习");
-    m_reviewButton->setObjectName("secondaryButton");
-    m_reviewButton->setMinimumHeight(45);
-
-    m_assistantButton = new QPushButton("题目助手");
-    m_assistantButton->setObjectName("secondaryButton");
-    m_assistantButton->setMinimumHeight(45);
-    
-    m_aboutButton = new QPushButton("关于程序");
-    m_aboutButton->setObjectName("secondaryButton");
-    m_aboutButton->setMinimumHeight(45);
-    
-    m_exitButton = new QPushButton("退出程序");
-    m_exitButton->setObjectName("exitButton");
-    m_exitButton->setMinimumHeight(45);
-    
-    // Add buttons to layout
-    m_buttonLayout->addWidget(m_startButton);
-    m_buttonLayout->addWidget(m_resumeButton);
-    m_buttonLayout->addWidget(m_configButton);
-    m_buttonLayout->addWidget(m_reviewButton);
-    m_buttonLayout->addWidget(m_assistantButton);
-    m_buttonLayout->addWidget(m_aboutButton);
-    m_buttonLayout->addStretch();
-    m_buttonLayout->addWidget(m_exitButton);
-    
-    // Add sections to main layout
-    m_mainLayout->addStretch();
-    m_mainLayout->addLayout(m_titleLayout);
-    m_mainLayout->addStretch();
-    m_mainLayout->addLayout(m_buttonLayout);
-    m_mainLayout->addStretch();
-    
-    setLayout(m_mainLayout);
 }
 
 void StartWidget::setupConnections()

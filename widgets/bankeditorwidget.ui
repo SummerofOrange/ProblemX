@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BankEditorWidget</class>
+ <widget class="QWidget" name="BankEditorWidget">
+  <property name="windowTitle">
+   <string>BankEditorWidget</string>
+  </property>
+  <layout class="QHBoxLayout" name="mainLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QSplitter" name="mainSplitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QWidget" name="leftPanel">
+      <layout class="QVBoxLayout" name="leftLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="bankInfoLabel">
+         <property name="text">
+          <string>题库编辑器</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="questionListWidget">
+         <property name="alternatingRowColors">
+          <bool>false</bool>
+         </property>
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <property name="uniformItemSizes">
+          <bool>true</bool>
+         </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="listButtonLayout">
+         <item>
+          <widget class="QPushButton" name="addQuestionButton">
+           <property name="text">
+            <string>添加题目</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="deleteQuestionButton">
+           <property name="text">
+            <string>删除题目</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="rightPanel">
+      <layout class="QVBoxLayout" name="rightLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QSplitter" name="editorSplitter">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QWidget" name="editorPanel">
+          <layout class="QVBoxLayout" name="editorLayout">
+           <property name="spacing">
+            <number>10</number>
+           </property>
+           <property name="leftMargin">
+            <number>5</number>
+           </property>
+           <property name="topMargin">
+            <number>5</number>
+           </property>
+           <property name="rightMargin">
+            <number>5</number>
+           </property>
+           <property name="bottomMargin">
+            <number>5</number>
+           </property>
+           <item>
+            <widget class="QGroupBox" name="editorGroup">
+             <property name="title">
+              <string>题目编辑</string>
+             </property>
+             <layout class="QVBoxLayout" name="editorGroupLayout">
+              <item>
+               <layout class="QHBoxLayout" name="typeLayout">
+                <item>
+                 <widget class="QLabel" name="typeLabel">
+                  <property name="text">
+                   <string>题目类型:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="typeComboBox"/>
+                </item>
+                <item>
+                 <spacer name="typeSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QLabel" name="questionLabel">
+                <property name="text">
+                 <string>题目内容:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QTextEdit" name="questionTextEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>150</height>
+                 </size>
+                </property>
+                <property name="placeholderText">
+                 <string>请输入题目内容，支持Markdown语法和LaTeX数学公式...</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="imageGroup">
+                <property name="title">
+                 <string>图片</string>
+                </property>
+                <layout class="QVBoxLayout" name="imageLayout">
+                 <item>
+                  <widget class="QTableWidget" name="imageTable">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>130</height>
+                    </size>
+                   </property>
+                   <property name="selectionMode">
+                    <enum>QAbstractItemView::SingleSelection</enum>
+                   </property>
+                   <property name="selectionBehavior">
+                    <enum>QAbstractItemView::SelectRows</enum>
+                   </property>
+                   <property name="editTriggers">
+                    <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+                   </property>
+                   <column>
+                    <property name="text">
+                     <string>键</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>路径</string>
+                    </property>
+                   </column>
+                  </widget>
+                 </item>
+                 <item>
+                  <layout class="QHBoxLayout" name="imageButtonLayout">
+                   <item>
+                    <widget class="QPushButton" name="addImageButton">
+                     <property name="text">
+                      <string>添加</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="removeImageButton">
+                     <property name="text">
+                      <string>删除</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="imageButtonSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="chooseImageButton">
+                     <property name="text">
+                      <string>选择图片</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QStackedWidget" name="editorStack">
+                <widget class="QWidget" name="choiceEditorWidget">
+                 <layout class="QVBoxLayout" name="choiceEditorLayout">
+                  <item>
+                   <layout class="QHBoxLayout" name="choiceCountLayout">
+                    <item>
+                     <widget class="QLabel" name="choiceCountLabel">
+                      <property name="text">
+                       <string>选项数量:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="choiceCountSpinBox">
+                      <property name="minimumSize">
+                       <size>
+                        <width>80</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="minimum">
+                       <number>2</number>
+                      </property>
+                      <property name="maximum">
+                       <number>8</number>
+                      </property>
+                      <property name="value">
+                       <number>4</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="choiceCountSpacer">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="choiceAnswerLabel">
+                    <property name="text">
+                     <string>正确答案:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QComboBox" name="choiceAnswerComboBox"/>
+                  </item>
+                  <item>
+                   <spacer name="choiceEditorSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QWidget" name="trueOrFalseEditorWidget">
+                 <layout class="QVBoxLayout" name="trueOrFalseEditorLayout">
+                  <item>
+                   <widget class="QLabel" name="trueOrFalseAnswerLabel">
+                    <property name="text">
+                     <string>正确答案:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QComboBox" name="trueOrFalseAnswerComboBox"/>
+                  </item>
+                  <item>
+                   <spacer name="trueOrFalseEditorSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QWidget" name="multiChoiceEditorWidget">
+                 <layout class="QVBoxLayout" name="multiChoiceEditorLayout">
+                  <item>
+                   <layout class="QHBoxLayout" name="multiChoiceCountLayout">
+                    <item>
+                     <widget class="QLabel" name="multiChoiceCountLabel">
+                      <property name="text">
+                       <string>选项数量:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="multiChoiceCountSpinBox">
+                      <property name="minimumSize">
+                       <size>
+                        <width>80</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="minimum">
+                       <number>2</number>
+                      </property>
+                      <property name="maximum">
+                       <number>8</number>
+                      </property>
+                      <property name="value">
+                       <number>4</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="multiChoiceCountSpacer">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="multiChoiceAnswerLabel">
+                    <property name="text">
+                     <string>正确答案 (如: A,B,C):</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QTextEdit" name="multiChoiceAnswerEdit">
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>60</height>
+                     </size>
+                    </property>
+                    <property name="placeholderText">
+                     <string>输入正确答案的字母组合，如: A,B,C</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="multiChoiceEditorSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QWidget" name="fillBlankEditorWidget">
+                 <layout class="QVBoxLayout" name="fillBlankEditorLayout">
+                  <item>
+                   <layout class="QHBoxLayout" name="blankCountLayout">
+                    <item>
+                     <widget class="QLabel" name="blankCountLabel">
+                      <property name="text">
+                       <string>空格数量:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="blankCountSpinBox">
+                      <property name="minimumSize">
+                       <size>
+                        <width>80</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>10</number>
+                      </property>
+                      <property name="value">
+                       <number>1</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="blankCountSpacer">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <spacer name="fillBlankEditorSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="previewPanel">
+          <layout class="QVBoxLayout" name="previewLayout">
+           <property name="spacing">
+            <number>10</number>
+           </property>
+           <property name="leftMargin">
+            <number>5</number>
+           </property>
+           <property name="topMargin">
+            <number>5</number>
+           </property>
+           <property name="rightMargin">
+            <number>5</number>
+           </property>
+           <property name="bottomMargin">
+            <number>5</number>
+           </property>
+           <item>
+            <widget class="QGroupBox" name="previewGroup">
+             <property name="title">
+              <string>实时预览</string>
+             </property>
+             <layout class="QVBoxLayout" name="previewGroupLayout">
+              <item>
+               <widget class="QScrollArea" name="previewScrollArea">
+                <property name="widgetResizable">
+                 <bool>true</bool>
+                </property>
+                <property name="horizontalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAsNeeded</enum>
+                </property>
+                <property name="verticalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAsNeeded</enum>
+                </property>
+                <widget class="QWidget" name="previewContent">
+                 <property name="geometry">
+                  <rect>
+                   <x>0</x>
+                   <y>0</y>
+                   <width>330</width>
+                   <height>430</height>
+                  </rect>
+                 </property>
+                 <layout class="QVBoxLayout" name="previewContentLayout">
+                  <property name="spacing">
+                   <number>15</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>10</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>10</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>10</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>10</number>
+                  </property>
+                  <item>
+                   <widget class="MarkdownRenderer" name="previewRenderer" native="true"/>
+                  </item>
+                  <item>
+                   <widget class="QStackedWidget" name="previewStack">
+                    <widget class="QWidget" name="choicePreviewWidget">
+                     <layout class="QVBoxLayout" name="choicePreviewLayout">
+                      <item>
+                       <spacer name="choicePreviewSpacer">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                    <widget class="QWidget" name="trueOrFalsePreviewWidget">
+                     <layout class="QVBoxLayout" name="trueOrFalsePreviewLayout">
+                      <item>
+                       <widget class="QLabel" name="trueOrFalsePreviewLabel">
+                        <property name="text">
+                         <string>○ 正确
+○ 错误</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="trueOrFalsePreviewSpacer">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                    <widget class="QWidget" name="multiChoicePreviewWidget">
+                     <layout class="QVBoxLayout" name="multiChoicePreviewLayout">
+                      <item>
+                       <spacer name="multiChoicePreviewSpacer">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                    <widget class="QWidget" name="fillBlankPreviewWidget">
+                     <layout class="QVBoxLayout" name="fillBlankPreviewLayout">
+                      <item>
+                       <widget class="QLabel" name="fillBlankPreviewLabel">
+                        <property name="text">
+                         <string>填空题预览区域</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="fillBlankPreviewSpacer">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="previewContentSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="bottomButtonLayout">
+         <item>
+          <spacer name="bottomButtonSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="saveButton">
+           <property name="text">
+            <string>保存题库</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="backButton">
+           <property name="text">
+            <string>返回</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MarkdownRenderer</class>
+   <extends>QWidget</extends>
+   <header>utils/markdownrenderer.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

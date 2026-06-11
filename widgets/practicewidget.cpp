@@ -1,4 +1,5 @@
 #include "practicewidget.h"
+#include "ui_practicewidget.h"
 #include "../core/practicemanager.h"
 #include "../models/question.h"
 #include "../utils/markdownrenderer.h"
@@ -37,6 +38,7 @@
 
 PracticeWidget::PracticeWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::PracticeWidget)
     , m_practiceManager(nullptr)
     , m_currentQuestionIndex(-1)
     , m_totalQuestions(0)
@@ -57,6 +59,7 @@ PracticeWidget::PracticeWidget(QWidget *parent)
 
 PracticeWidget::~PracticeWidget()
 {
+    delete ui;
 }
 
 void PracticeWidget::setPracticeManager(PracticeManager *practiceManager)
@@ -125,184 +128,73 @@ void PracticeWidget::resumePractice()
 
 void PracticeWidget::setupUI()
 {
-    // Create main splitter
-    m_mainSplitter = new QSplitter(Qt::Horizontal, this);
-    
-    // Create question panel (left side)
-    m_questionPanel = new QWidget();
-    m_questionLayout = new QVBoxLayout(m_questionPanel);
-    m_questionLayout->setContentsMargins(15, 15, 15, 15);
-    m_questionLayout->setSpacing(15);
-    
-    // Question header
-    m_headerLayout = new QHBoxLayout();
-    m_questionNumberLabel = new QLabel("题目 1/1");
+    ui->setupUi(this);
+
+    m_mainSplitter = ui->mainSplitter;
+    m_questionPanel = ui->questionPanel;
+    m_questionLayout = ui->questionLayout;
+    m_headerLayout = ui->headerLayout;
+    m_questionNumberLabel = ui->questionNumberLabel;
+    m_questionTypeLabel = ui->questionTypeLabel;
+    m_timerLabel = ui->timerLabel;
+    m_pauseButton = ui->pauseButton;
+    m_questionScrollArea = ui->questionScrollArea;
+    m_questionContent = ui->questionContent;
+    m_questionContentLayout = ui->questionContentLayout;
+    m_questionTextRenderer = ui->questionTextRenderer;
+    m_questionImageLabel = ui->questionImageLabel;
+    m_answerStack = ui->answerStack;
+    m_choiceWidget = ui->choiceWidget;
+    m_choiceLayout = ui->choiceLayout;
+    m_multiChoiceWidget = ui->multiChoiceWidget;
+    m_multiChoiceLayout = ui->multiChoiceLayout;
+    m_fillBlankWidget = ui->fillBlankWidget;
+    m_fillBlankLayout = ui->fillBlankLayout;
+    m_resultFrame = ui->resultFrame;
+    m_resultLayout = ui->resultLayout;
+    m_resultIcon = ui->resultIcon;
+    m_resultText = ui->resultText;
+    m_correctAnswerLabel = ui->correctAnswerLabel;
+    m_navigationLayout = ui->navigationLayout;
+    m_previousButton = ui->previousButton;
+    m_submitButton = ui->submitButton;
+    m_nextButton = ui->nextButton;
+    m_finishButton = ui->finishButton;
+    m_sidePanel = ui->sidePanel;
+    m_sideLayout = ui->sideLayout;
+    m_statisticsGroup = ui->statisticsGroup;
+    m_statisticsLayout = ui->statisticsLayout;
+    m_progressLabel = ui->progressLabel;
+    m_progressBar = ui->progressBar;
+    m_answeredLabel = ui->answeredLabel;
+    m_correctLabel = ui->correctLabel;
+    m_wrongLabel = ui->wrongLabel;
+    m_accuracyLabel = ui->accuracyLabel;
+    m_timeElapsedLabel = ui->timeElapsedLabel;
+    m_questionListGroup = ui->questionListGroup;
+    m_questionListLayout = ui->questionListLayout;
+    m_questionListWidget = ui->questionListWidget;
+    m_controlLayout = ui->controlLayout;
+    m_backButton = ui->backButton;
+
     m_questionNumberLabel->setObjectName("questionNumber");
-    m_questionTypeLabel = new QLabel("选择题");
     m_questionTypeLabel->setObjectName("questionType");
-    m_timerLabel = new QLabel("00:00");
     m_timerLabel->setObjectName("timer");
-    m_pauseButton = new QPushButton("暂停");
     m_pauseButton->setObjectName("pauseButton");
-    
-    m_headerLayout->addWidget(m_questionNumberLabel);
-    m_headerLayout->addWidget(m_questionTypeLabel);
-    m_headerLayout->addStretch();
-    m_headerLayout->addWidget(m_timerLabel);
-    m_headerLayout->addWidget(m_pauseButton);
-    
-    // Question content scroll area
-    m_questionScrollArea = new QScrollArea();
-    m_questionScrollArea->setWidgetResizable(true);
-    m_questionScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_questionScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    
-    m_questionContent = new QWidget();
-    m_questionContentLayout = new QVBoxLayout(m_questionContent);
-    m_questionContentLayout->setContentsMargins(10, 10, 10, 10);
-    m_questionContentLayout->setSpacing(15);
-    
-    // Question text and image - 使用MarkdownRenderer替换QLabel
-    m_questionTextRenderer = new MarkdownRenderer(this);
-    m_questionTextRenderer->setAutoResize(true, 600);  // 启用自动适配，最大高度600
-    m_questionTextRenderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    
-    m_questionImageLabel = new QLabel();
-    m_questionImageLabel->setAlignment(Qt::AlignCenter);
-    m_questionImageLabel->setScaledContents(false);
-    m_questionImageLabel->setVisible(false);
-    
-    m_questionContentLayout->addWidget(m_questionTextRenderer);
-    m_questionContentLayout->addWidget(m_questionImageLabel);
-    
-    // Answer input stack
-    m_answerStack = new QStackedWidget();
-    
-    // Choice question widget
-    m_choiceWidget = new QWidget();
-    m_choiceLayout = new QVBoxLayout(m_choiceWidget);
-    m_choiceButtonGroup = new QButtonGroup(this);
-    
-    // Multi-choice question widget
-    m_multiChoiceWidget = new QWidget();
-    m_multiChoiceLayout = new QVBoxLayout(m_multiChoiceWidget);
-    
-    // Fill blank question widget
-    m_fillBlankWidget = new QWidget();
-    m_fillBlankLayout = new QVBoxLayout(m_fillBlankWidget);
-    
-    m_answerStack->addWidget(m_choiceWidget);
-    m_answerStack->addWidget(m_multiChoiceWidget);
-    m_answerStack->addWidget(m_fillBlankWidget);
-    
-    m_questionContentLayout->addWidget(m_answerStack);
-    m_questionContentLayout->addStretch();
-    
-    m_questionScrollArea->setWidget(m_questionContent);
-    
-    // Answer result display
-    m_resultFrame = new QFrame();
     m_resultFrame->setObjectName("resultFrame");
-    m_resultFrame->setVisible(false);
-    m_resultLayout = new QHBoxLayout(m_resultFrame);
-    
-    m_resultIcon = new QLabel();
-    m_resultIcon->setFixedSize(24, 24);
-    m_resultText = new QLabel();
     m_resultText->setObjectName("resultText");
-    m_correctAnswerLabel = new QLabel();
     m_correctAnswerLabel->setObjectName("correctAnswer");
-    
-    m_resultLayout->addWidget(m_resultIcon);
-    m_resultLayout->addWidget(m_resultText);
-    m_resultLayout->addWidget(m_correctAnswerLabel);
-    m_resultLayout->addStretch();
-    
-    // Navigation buttons
-    m_navigationLayout = new QHBoxLayout();
-    m_previousButton = new QPushButton("上一题");
-    m_submitButton = new QPushButton("提交答案");
     m_submitButton->setObjectName("submitButton");
-    m_nextButton = new QPushButton("下一题");
-    m_finishButton = new QPushButton("完成练习");
     m_finishButton->setObjectName("finishButton");
-    
-    m_navigationLayout->addWidget(m_previousButton);
-    m_navigationLayout->addStretch();
-    m_navigationLayout->addWidget(m_submitButton);
-    m_navigationLayout->addWidget(m_nextButton);
-    m_navigationLayout->addWidget(m_finishButton);
-    
-    // Add to question layout
-    m_questionLayout->addLayout(m_headerLayout);
-    m_questionLayout->addWidget(m_questionScrollArea, 1);
-    m_questionLayout->addWidget(m_resultFrame);
-    m_questionLayout->addLayout(m_navigationLayout);
-    
-    // Create side panel (right side)
-    m_sidePanel = new QWidget();
-    m_sideLayout = new QVBoxLayout(m_sidePanel);
-    m_sideLayout->setContentsMargins(10, 15, 15, 15);
-    m_sideLayout->setSpacing(15);
-    
-    // Statistics group
-    m_statisticsGroup = new QGroupBox("练习统计");
-    m_statisticsLayout = new QGridLayout(m_statisticsGroup);
-    
-    m_progressLabel = new QLabel("进度:");
-    m_progressBar = new QProgressBar();
-    m_progressBar->setTextVisible(true);
-    m_progressBar->setFormat("%p%");
-    
-    m_answeredLabel = new QLabel("已答题: 0");
-    m_correctLabel = new QLabel("正确: 0");
-    m_wrongLabel = new QLabel("错误: 0");
-    m_accuracyLabel = new QLabel("正确率: 0%");
-    m_timeElapsedLabel = new QLabel("用时: 00:00");
-    
-    m_statisticsLayout->addWidget(m_progressLabel, 0, 0);
-    m_statisticsLayout->addWidget(m_progressBar, 0, 1);
-    m_statisticsLayout->addWidget(m_answeredLabel, 1, 0);
-    m_statisticsLayout->addWidget(m_correctLabel, 1, 1);
-    m_statisticsLayout->addWidget(m_wrongLabel, 2, 0);
-    m_statisticsLayout->addWidget(m_accuracyLabel, 2, 1);
-    m_statisticsLayout->addWidget(m_timeElapsedLabel, 3, 0, 1, 2);
-    
-    // Question list group
-    m_questionListGroup = new QGroupBox("题目列表");
-    m_questionListLayout = new QVBoxLayout(m_questionListGroup);
-    
-    m_questionListWidget = new QListWidget();
-    m_questionListWidget->setMaximumHeight(300);
-    
-    m_questionListLayout->addWidget(m_questionListWidget);
-    
-    // Control buttons
-    m_controlLayout = new QHBoxLayout();
-    m_backButton = new QPushButton("返回");
     m_backButton->setObjectName("backButton");
-    
-    m_controlLayout->addStretch();
-    m_controlLayout->addWidget(m_backButton);
-    
-    // Add to side layout
-    m_sideLayout->addWidget(m_statisticsGroup);
-    m_sideLayout->addWidget(m_questionListGroup);
-    m_sideLayout->addStretch();
-    m_sideLayout->addLayout(m_controlLayout);
-    
-    // Add panels to splitter
-    m_mainSplitter->addWidget(m_questionPanel);
-    m_mainSplitter->addWidget(m_sidePanel);
+
+    m_questionTextRenderer->setAutoResize(true, 600);
+    m_questionTextRenderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+    m_choiceButtonGroup = new QButtonGroup(this);
+
     m_mainSplitter->setStretchFactor(0, 3);
     m_mainSplitter->setStretchFactor(1, 1);
-    
-    // Main layout
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(m_mainSplitter);
-    
-    setLayout(mainLayout);
 }
 
 void PracticeWidget::setupConnections()

@@ -24,6 +24,9 @@
 #include "../utils/bankscanner.h"
 
 QT_BEGIN_NAMESPACE
+namespace Ui {
+class ConfigWidget;
+}
 class QTreeWidget;
 class QTreeWidgetItem;
 class QPushButton;
@@ -102,6 +105,8 @@ private:
     void updateSubjectStatistics();
     void updateSubjectItemStatistics(QTreeWidgetItem *subjectItem);
     
+    Ui::ConfigWidget *ui;
+
     // UI Components - Left Panel (Tree View)
     QSplitter *m_mainSplitter;
     QWidget *m_leftPanel;

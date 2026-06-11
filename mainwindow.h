@@ -3,8 +3,6 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
-#include <QVBoxLayout>
-#include <QWidget>
 #include <QList>
 #include "models/question.h"
 
@@ -51,8 +49,6 @@ private:
     void initializeManagers();
     
     Ui::MainWindow *ui;
-    QWidget *m_centralWidget;
-    QVBoxLayout *m_mainLayout;
     QStackedWidget *m_stackedWidget;
     
     // Widgets

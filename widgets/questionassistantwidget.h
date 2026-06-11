@@ -30,6 +30,10 @@ class OcsServer;
 class QDoubleSpinBox;
 class QTextEdit;
 
+namespace Ui {
+class QuestionAssistantWidget;
+}
+
 struct ParsedPtaQuestion {
     QString id;
 
@@ -107,6 +111,8 @@ protected:
 
     ConfigManager *m_configManager;
     QuestionSearchIndex *m_searchIndex;
+
+    Ui::QuestionAssistantWidget *ui;
 
     QVBoxLayout *m_mainLayout;
     QHBoxLayout *m_headerLayout;

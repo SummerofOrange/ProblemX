@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfigWidget</class>
+ <widget class="QWidget" name="ConfigWidget">
+  <property name="windowTitle">
+   <string>ConfigWidget</string>
+  </property>
+  <layout class="QHBoxLayout" name="mainLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QStackedWidget" name="stackedWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="mainConfigPage">
+      <layout class="QHBoxLayout" name="mainConfigLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QSplitter" name="mainSplitter">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QWidget" name="leftPanel">
+          <layout class="QVBoxLayout" name="leftLayout">
+           <property name="spacing">
+            <number>10</number>
+           </property>
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <property name="topMargin">
+            <number>10</number>
+           </property>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>10</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="subjectLabel">
+             <property name="text">
+              <string>科目和题库</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTreeWidget" name="subjectTree">
+             <property name="alternatingRowColors">
+              <bool>true</bool>
+             </property>
+             <property name="rootIsDecorated">
+              <bool>true</bool>
+             </property>
+             <property name="selectionMode">
+              <enum>QAbstractItemView::SingleSelection</enum>
+             </property>
+             <column>
+              <property name="text">
+               <string>名称</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>状态</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>题目数</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="subjectButtonLayout">
+             <item>
+              <widget class="QPushButton" name="addSubjectButton">
+               <property name="text">
+                <string>添加科目</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="createSubjectButton">
+               <property name="text">
+                <string>创建科目</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="removeSubjectButton">
+               <property name="text">
+                <string>删除科目</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="removeBankButton">
+               <property name="text">
+                <string>删除题库</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="subjectButtonSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="rightPanel">
+          <layout class="QVBoxLayout" name="rightLayout">
+           <property name="spacing">
+            <number>15</number>
+           </property>
+           <property name="leftMargin">
+            <number>10</number>
+           </property>
+           <property name="topMargin">
+            <number>10</number>
+           </property>
+           <property name="rightMargin">
+            <number>10</number>
+           </property>
+           <property name="bottomMargin">
+            <number>10</number>
+           </property>
+           <item>
+            <widget class="QGroupBox" name="subjectInfoGroup">
+             <property name="title">
+              <string>科目信息</string>
+             </property>
+             <layout class="QGridLayout" name="subjectInfoLayout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="subjectNameLabel">
+                <property name="text">
+                 <string>科目名称:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1" colspan="2">
+               <widget class="QLineEdit" name="subjectNameEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="subjectPathLabel">
+                <property name="text">
+                 <string>题库路径:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="subjectPathEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="QPushButton" name="browsePathButton">
+                <property name="text">
+                 <string>浏览</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="subjectActionsGroup">
+             <property name="visible">
+              <bool>false</bool>
+             </property>
+             <property name="title">
+              <string>题库操作</string>
+             </property>
+             <layout class="QHBoxLayout" name="subjectActionsLayout">
+              <item>
+               <widget class="QPushButton" name="createBankButton">
+                <property name="text">
+                 <string>创建题库</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="autoFetchBankButton">
+                <property name="text">
+                 <string>自动获取题库</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="subjectActionsSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="bankDetailsGroup">
+             <property name="visible">
+              <bool>false</bool>
+             </property>
+             <property name="title">
+              <string>题库详情</string>
+             </property>
+             <layout class="QGridLayout" name="bankDetailsLayout">
+              <item row="0" column="0" colspan="3">
+               <widget class="QLabel" name="bankNameLabel">
+                <property name="text">
+                 <string>题库名称: --</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0" colspan="3">
+               <widget class="QLabel" name="bankTypeLabel">
+                <property name="text">
+                 <string>题库类型: --</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0" colspan="3">
+               <widget class="QLabel" name="totalQuestionsLabel">
+                <property name="text">
+                 <string>题目总数: --</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0" colspan="3">
+               <widget class="QLabel" name="bankStatusLabel">
+                <property name="text">
+                 <string>状态: --</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0" colspan="3">
+               <layout class="QHBoxLayout" name="extractCountRowLayout">
+                <item>
+                 <widget class="QLabel" name="extractCountLabel">
+                  <property name="text">
+                   <string>抽取数量:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSlider" name="extractCountSlider">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>450</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>550</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>9999</number>
+                  </property>
+                  <property name="value">
+                   <number>1</number>
+                  </property>
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="extractCountSpinBox">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>110</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>9999</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="extractPercentLabel">
+                  <property name="visible">
+                   <bool>false</bool>
+                  </property>
+                  <property name="text">
+                   <string>(0%)</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="5" column="0" colspan="3">
+               <widget class="QPushButton" name="editBankButton">
+                <property name="text">
+                 <string>编辑题库</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="statisticsGroup">
+             <property name="title">
+              <string>统计信息</string>
+             </property>
+             <layout class="QGridLayout" name="statisticsLayout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="totalSubjectsLabel">
+                <property name="text">
+                 <string>总科目数: 0</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="totalBanksLabel">
+                <property name="text">
+                 <string>总题库数: 0</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="enabledBanksLabel">
+                <property name="text">
+                 <string>已启用: 0</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLabel" name="statisticsQuestionsLabel">
+                <property name="text">
+                 <string>总题目数: 0</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0" colspan="2">
+               <widget class="QCheckBox" name="shuffleQuestionsCheckBox">
+                <property name="text">
+                 <string>乱序题目</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0" colspan="2">
+               <widget class="QProgressBar" name="configProgressBar">
+                <property name="value">
+                 <number>0</number>
+                </property>
+                <property name="textVisible">
+                 <bool>true</bool>
+                </property>
+                <property name="format">
+                 <string>配置完成度: %p%</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="descriptionGroup">
+             <property name="title">
+              <string>说明</string>
+             </property>
+             <layout class="QVBoxLayout" name="descriptionLayout">
+              <item>
+               <widget class="QTextEdit" name="descriptionEdit">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>100</height>
+                 </size>
+                </property>
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+                <property name="plainText">
+                 <string>配置说明:
+1. 选择科目查看其包含的题库
+2. 选择题库可以启用/禁用和设置抽取数量
+3. 抽取数量不能超过题库总题目数
+4. 至少启用一个题库才能开始练习</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <spacer name="rightSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="bottomButtonLayout">
+             <item>
+              <spacer name="bottomButtonSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="saveButton">
+               <property name="text">
+                <string>保存配置</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="backButton">
+               <property name="text">
+                <string>返回</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="BankEditorWidget" name="bankEditorWidget" native="true"/>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>BankEditorWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/bankeditorwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

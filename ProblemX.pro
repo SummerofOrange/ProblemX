@@ -54,7 +54,15 @@ HEADERS += \
     utils/questionsearchindex.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    widgets/startwidget.ui \
+    widgets/practicewidget.ui \
+    widgets/questionpreviewwidget.ui \
+    widgets/ptaimportdialog.ui \
+    widgets/configwidget.ui \
+    widgets/reviewwidget.ui \
+    widgets/questionassistantwidget.ui \
+    widgets/bankeditorwidget.ui
 
 # Copy resources folder to build directory (same directory as exe)
 CONFIG(debug, debug|release) {

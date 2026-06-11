@@ -1,4 +1,5 @@
 #include "ptaimportdialog.h"
+#include "ui_ptaimportdialog.h"
 #include "bankeditorwidget.h"
 #include "../core/configmanager.h"
 
@@ -276,6 +277,7 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     , m_configManager(configManager)
     , m_subjectName(subjectName)
     , m_subjectPath(configManager ? configManager->getSubjectPath(subjectName) : QString())
+    , ui(new Ui::PtaImportDialog)
     , m_splitter(nullptr)
     , m_leftPanel(nullptr)
     , m_leftLayout(nullptr)
@@ -298,96 +300,40 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
     , m_saveButton(nullptr)
     , m_exitButton(nullptr)
 {
+    ui->setupUi(this);
     setWindowTitle(QString("自动获取题库 - %1").arg(subjectName));
-    resize(1600, 900);
-    setMinimumSize(1400, 800);
 
-    m_splitter = new QSplitter(Qt::Horizontal, this);
-    m_leftPanel = new QWidget(m_splitter);
-    m_leftLayout = new QVBoxLayout(m_leftPanel);
-    m_leftLayout->setContentsMargins(10, 10, 10, 10);
-    m_leftLayout->setSpacing(8);
+    m_splitter = ui->splitter;
+    m_leftPanel = ui->leftPanel;
+    m_leftLayout = ui->leftLayout;
+    m_navLayout = ui->navLayout;
+    m_backButton = ui->backButton;
+    m_forwardButton = ui->forwardButton;
+    m_reloadButton = ui->reloadButton;
+    m_addressBar = ui->addressBar;
+    m_webView = ui->webView;
+    m_rightPanel = ui->rightPanel;
+    m_rightLayout = ui->rightLayout;
+    m_parseButtonLayout = ui->parseButtonLayout;
+    m_parseChoiceButton = ui->parseChoiceButton;
+    m_parseTrueOrFalseButton = ui->parseTrueOrFalseButton;
+    m_parseFillBlankButton = ui->parseFillBlankButton;
+    m_output = ui->output;
+    m_editor = ui->editor;
+    m_bottomLayout = ui->bottomLayout;
+    m_downloadImagesCheckBox = ui->downloadImagesCheckBox;
+    m_saveButton = ui->saveButton;
+    m_exitButton = ui->exitButton;
 
-    m_navLayout = new QHBoxLayout();
-    m_navLayout->setContentsMargins(0, 0, 0, 0);
-    m_navLayout->setSpacing(6);
-
-    m_backButton = new QToolButton(m_leftPanel);
     m_backButton->setIcon(style()->standardIcon(QStyle::SP_ArrowBack));
-    m_backButton->setEnabled(false);
-
-    m_forwardButton = new QToolButton(m_leftPanel);
     m_forwardButton->setIcon(style()->standardIcon(QStyle::SP_ArrowForward));
-    m_forwardButton->setEnabled(false);
-
-    m_reloadButton = new QToolButton(m_leftPanel);
     m_reloadButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
 
-    m_addressBar = new QLineEdit(m_leftPanel);
-    m_addressBar->setPlaceholderText("输入网址并回车");
-
-    m_navLayout->addWidget(m_backButton);
-    m_navLayout->addWidget(m_forwardButton);
-    m_navLayout->addWidget(m_reloadButton);
-    m_navLayout->addWidget(m_addressBar, 1);
-
-    m_webView = new QWebEngineView(m_leftPanel);
     const QUrl initialUrl("https://pintia.cn/auth/login");
     m_addressBar->setText(initialUrl.toString());
     m_webView->setUrl(initialUrl);
 
-    m_rightPanel = new QWidget(m_splitter);
-    m_rightLayout = new QVBoxLayout(m_rightPanel);
-    m_rightLayout->setContentsMargins(10, 10, 10, 10);
-    m_rightLayout->setSpacing(10);
-
-    m_parseButtonLayout = new QHBoxLayout();
-    m_parseChoiceButton = new QPushButton("解析当前页面的选择题", m_leftPanel);
-    m_parseTrueOrFalseButton = new QPushButton("解析当前页面的判断题", m_leftPanel);
-    m_parseFillBlankButton = new QPushButton("解析当前页面的填空题", m_leftPanel);
-    m_parseChoiceButton->setAutoDefault(false);
-    m_parseChoiceButton->setDefault(false);
-    m_parseTrueOrFalseButton->setAutoDefault(false);
-    m_parseTrueOrFalseButton->setDefault(false);
-    m_parseFillBlankButton->setAutoDefault(false);
-    m_parseFillBlankButton->setDefault(false);
-    m_parseButtonLayout->addWidget(m_parseChoiceButton);
-    m_parseButtonLayout->addWidget(m_parseTrueOrFalseButton);
-    m_parseButtonLayout->addWidget(m_parseFillBlankButton);
-
-    m_leftLayout->addLayout(m_navLayout);
-    m_leftLayout->addWidget(m_webView, 1);
-    m_leftLayout->addLayout(m_parseButtonLayout);
-
-    m_output = new QPlainTextEdit(m_rightPanel);
-    m_output->setReadOnly(true);
-    m_output->setMaximumBlockCount(2000);
-    m_output->setMinimumHeight(120);
-    m_rightLayout->addWidget(m_output);
-
-    m_editor = new BankEditorWidget(m_rightPanel);
     m_editor->setEmbeddedMode(true);
-    m_rightLayout->addWidget(m_editor, 1);
-
-    m_bottomLayout = new QHBoxLayout();
-    m_downloadImagesCheckBox = new QCheckBox("保存时下载图片", m_rightPanel);
-    m_downloadImagesCheckBox->setChecked(true);
-    m_saveButton = new QPushButton("保存当前题库", m_rightPanel);
-    m_exitButton = new QPushButton("退出界面", m_rightPanel);
-    m_saveButton->setAutoDefault(false);
-    m_saveButton->setDefault(false);
-    m_exitButton->setAutoDefault(false);
-    m_exitButton->setDefault(false);
-    m_bottomLayout->addWidget(m_downloadImagesCheckBox);
-    m_bottomLayout->addStretch();
-    m_bottomLayout->addWidget(m_saveButton);
-    m_bottomLayout->addWidget(m_exitButton);
-    m_rightLayout->addLayout(m_bottomLayout);
-
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(m_splitter);
-    setLayout(mainLayout);
 
     m_splitter->setChildrenCollapsible(false);
     m_splitter->setStretchFactor(0, 1);
@@ -441,6 +387,7 @@ PtaImportDialog::PtaImportDialog(ConfigManager *configManager, const QString &su
 
 PtaImportDialog::~PtaImportDialog()
 {
+    delete ui;
 }
 
 void PtaImportDialog::keyPressEvent(QKeyEvent *event)

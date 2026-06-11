@@ -1,4 +1,5 @@
 #include "questionassistantwidget.h"
+#include "ui_questionassistantwidget.h"
 #include "questionpreviewwidget.h"
 #include "ptaassistcontroller.h"
 #include "../core/ocsserver.h"
@@ -42,6 +43,7 @@
 
 QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::QuestionAssistantWidget)
     , m_configManager(nullptr)
     , m_searchIndex(new QuestionSearchIndex(this))
     , m_mainLayout(nullptr)
@@ -102,6 +104,7 @@ QuestionAssistantWidget::QuestionAssistantWidget(QWidget *parent)
 
 QuestionAssistantWidget::~QuestionAssistantWidget()
 {
+    delete ui;
 }
 
 void QuestionAssistantWidget::setConfigManager(ConfigManager *configManager)
@@ -162,40 +165,21 @@ bool QuestionAssistantWidget::prepareForShow()
 
 void QuestionAssistantWidget::setupUI()
 {
-    m_mainLayout = new QVBoxLayout(this);
-    m_mainLayout->setContentsMargins(16, 16, 16, 16);
-    m_mainLayout->setSpacing(12);
+    ui->setupUi(this);
 
-    m_headerLayout = new QHBoxLayout();
-    m_headerLayout->setContentsMargins(0, 0, 0, 0);
-    m_headerLayout->setSpacing(8);
+    m_mainLayout = ui->mainLayout;
+    m_headerLayout = ui->headerLayout;
+    m_backButton = ui->backButton;
+    m_titleLabel = ui->titleLabel;
+    m_tabs = ui->tabs;
+    m_searchTab = ui->searchTab;
+    m_ptaTab = ui->ptaTab;
+    m_ocsTab = ui->ocsTab;
 
-    m_backButton = new QPushButton("返回主页", this);
-    m_backButton->setAutoDefault(false);
-    m_backButton->setDefault(false);
-
-    m_titleLabel = new QLabel("题目助手", this);
     QFont f = m_titleLabel->font();
     f.setPointSize(f.pointSize() + 2);
     f.setBold(true);
     m_titleLabel->setFont(f);
-
-    m_headerLayout->addWidget(m_backButton);
-    m_headerLayout->addSpacing(8);
-    m_headerLayout->addWidget(m_titleLabel);
-    m_headerLayout->addStretch();
-
-    m_tabs = new QTabWidget(this);
-    m_searchTab = new QWidget(m_tabs);
-    m_ptaTab = new QWidget(m_tabs);
-    m_ocsTab = new QWidget(m_tabs);
-    m_tabs->addTab(m_searchTab, "搜题");
-    m_tabs->addTab(m_ptaTab, "辅助答题(PTA)");
-    m_tabs->addTab(m_ocsTab, "OCS服务");
-
-    m_mainLayout->addLayout(m_headerLayout);
-    m_mainLayout->addWidget(m_tabs, 1);
-    setLayout(m_mainLayout);
 
     setupSearchTab();
     setupPtaTab();
@@ -209,61 +193,20 @@ void QuestionAssistantWidget::setupConnections()
 
 void QuestionAssistantWidget::setupSearchTab()
 {
-    QVBoxLayout *root = new QVBoxLayout(m_searchTab);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(10);
+    m_indexStatusLabel = ui->indexStatusLabel;
+    m_queryEdit = ui->queryEdit;
+    m_topKSpinBox = ui->topKSpinBox;
+    m_searchButton = ui->searchButton;
+    m_resultsTree = ui->resultsTree;
+    m_previewWidget = ui->previewWidget;
 
-    m_indexStatusLabel = new QLabel(m_searchTab);
-    m_indexStatusLabel->setText("题库索引：未加载");
-
-    QSplitter *splitter = new QSplitter(Qt::Horizontal, m_searchTab);
-
-    QWidget *left = new QWidget(splitter);
-    QVBoxLayout *leftLayout = new QVBoxLayout(left);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    leftLayout->setSpacing(8);
-
-    m_queryEdit = new QPlainTextEdit(left);
-    m_queryEdit->setPlaceholderText("粘贴题目内容（可为部分题目）...");
-    m_queryEdit->setMinimumHeight(140);
-
-    QHBoxLayout *ctrl = new QHBoxLayout();
-    ctrl->setContentsMargins(0, 0, 0, 0);
-    ctrl->setSpacing(8);
-
-    QLabel *kLabel = new QLabel("Top-K：", left);
-    m_topKSpinBox = new QSpinBox(left);
-    m_topKSpinBox->setRange(1, 50);
-    m_topKSpinBox->setValue(5);
-    m_topKSpinBox->setMinimumWidth(80);
-
-    m_searchButton = new QPushButton("搜题", left);
-    m_searchButton->setAutoDefault(false);
-    m_searchButton->setDefault(false);
-
-    // Removed Rebuild Index Button
-
-    ctrl->addWidget(kLabel);
-    ctrl->addWidget(m_topKSpinBox);
-    ctrl->addStretch();
-    // ctrl->addWidget(m_rebuildIndexButton);
-    ctrl->addWidget(m_searchButton);
-
-    m_resultsTree = new QTreeWidget(left);
-    m_resultsTree->setHeaderLabels(QStringList() << "题型" << "科目" << "题库" << "来源" << "相似度");
-    m_resultsTree->setAlternatingRowColors(true);
-    m_resultsTree->setRootIsDecorated(false);
-    m_resultsTree->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_resultsTree->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_resultsTree->header()->setSectionResizeMode(QHeaderView::Interactive);
-    m_resultsTree->header()->resizeSection(0, 60);  // 题型
-    m_resultsTree->header()->resizeSection(1, 80);  // 科目
-    m_resultsTree->header()->resizeSection(2, 120); // 题库
-    m_resultsTree->header()->resizeSection(3, 120); // 来源
-    // 相似度 auto
+    m_resultsTree->header()->resizeSection(0, 60);
+    m_resultsTree->header()->resizeSection(1, 80);
+    m_resultsTree->header()->resizeSection(2, 120);
+    m_resultsTree->header()->resizeSection(3, 120);
 
-    // QSS Styling for Search Tab
-    left->setStyleSheet(
+    ui->searchLeftPanel->setStyleSheet(
         "QTreeWidget { border: 1px solid #dcdcdc; border-radius: 4px; font-size: 13px; }"
         "QTreeWidget::item { padding: 4px; }"
         "QTreeWidget::item:selected { background-color: #e6f3ff; color: #000; }"
@@ -273,27 +216,9 @@ void QuestionAssistantWidget::setupSearchTab()
         "QPushButton:pressed { background-color: #004085; }"
     );
 
-    leftLayout->addWidget(m_queryEdit);
-    leftLayout->addLayout(ctrl);
-    leftLayout->addWidget(m_resultsTree, 1);
-    left->setLayout(leftLayout);
-
-    QWidget *right = new QWidget(splitter);
-    QVBoxLayout *rightLayout = new QVBoxLayout(right);
-    rightLayout->setContentsMargins(0, 0, 0, 0);
-    rightLayout->setSpacing(8);
-
-    m_previewWidget = new QuestionPreviewWidget(right);
-    rightLayout->addWidget(m_previewWidget, 1);
-    right->setLayout(rightLayout);
-
-    splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 1);
-    splitter->setSizes(QList<int>() << 600 << 800);
-
-    root->addWidget(m_indexStatusLabel);
-    root->addWidget(splitter, 1);
-    m_searchTab->setLayout(root);
+    ui->searchSplitter->setStretchFactor(0, 1);
+    ui->searchSplitter->setStretchFactor(1, 1);
+    ui->searchSplitter->setSizes(QList<int>() << 600 << 800);
 
     // Removed m_rebuildIndexButton connect
 
@@ -347,58 +272,28 @@ void QuestionAssistantWidget::setupSearchTab()
 
 void QuestionAssistantWidget::setupPtaTab()
 {
-    QVBoxLayout *root = new QVBoxLayout(m_ptaTab);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(10);
+    m_ptaParseButton = ui->ptaParseButton;
+    m_ptaThresholdSpinBox = ui->ptaThresholdSpinBox;
+    m_ptaAutoAnswerButton = ui->ptaAutoAnswerButton;
+    m_ptaStopAutoButton = ui->ptaStopAutoButton;
+    m_ptaExportNewButton = ui->ptaExportNewButton;
+    m_ptaQuestionList = ui->ptaQuestionList;
+    m_logEdit = ui->logEdit;
+    m_ptaBackButton = ui->ptaBackButton;
+    m_ptaForwardButton = ui->ptaForwardButton;
+    m_ptaReloadButton = ui->ptaReloadButton;
+    m_ptaAddressBar = ui->ptaAddressBar;
+    m_ptaWebView = ui->ptaWebView;
+    m_ptaPageTipLabel = ui->ptaPageTipLabel;
+    m_ptaCurrentQuestionPreview = ui->ptaCurrentQuestionPreview;
+    m_ptaTopKSpinBox = ui->ptaTopKSpinBox;
+    m_ptaSearchButton = ui->ptaSearchButton;
+    m_ptaResultsTree = ui->ptaResultsTree;
+    m_ptaFillButton = ui->ptaFillButton;
+    m_ptaSelectedBankPreview = ui->ptaSelectedBankPreview;
 
-    QSplitter *splitter = new QSplitter(Qt::Horizontal, m_ptaTab);
-
-    QWidget *left = new QWidget(splitter);
-    QVBoxLayout *leftLayout = new QVBoxLayout(left);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    leftLayout->setSpacing(8);
-
-    m_ptaParseButton = new QPushButton("解析当前页面题目", left);
-    m_ptaParseButton->setAutoDefault(false);
-    m_ptaParseButton->setDefault(false);
-
-    QHBoxLayout *autoRow = new QHBoxLayout();
-    autoRow->setContentsMargins(0, 0, 0, 0);
-    autoRow->setSpacing(8);
-
-    QLabel *thLabel = new QLabel("阈值：", left);
-    m_ptaThresholdSpinBox = new QDoubleSpinBox(left);
-    m_ptaThresholdSpinBox->setRange(0.0, 1.0);
-    m_ptaThresholdSpinBox->setSingleStep(0.05);
-    m_ptaThresholdSpinBox->setDecimals(2);
-    m_ptaThresholdSpinBox->setValue(0.85);
-    m_ptaThresholdSpinBox->setFixedWidth(100);
-
-    m_ptaAutoAnswerButton = new QPushButton("自动答题", left);
-    m_ptaAutoAnswerButton->setAutoDefault(false);
-    m_ptaAutoAnswerButton->setDefault(false);
-
-    m_ptaStopAutoButton = new QPushButton("停止", left);
-    m_ptaStopAutoButton->setAutoDefault(false);
-    m_ptaStopAutoButton->setDefault(false);
-    m_ptaStopAutoButton->setEnabled(false);
-
-    autoRow->addWidget(thLabel);
-    autoRow->addWidget(m_ptaThresholdSpinBox);
-    autoRow->addStretch();
-    autoRow->addWidget(m_ptaAutoAnswerButton);
-    autoRow->addWidget(m_ptaStopAutoButton);
-
-    m_ptaExportNewButton = new QPushButton("导出新题", left);
-    m_ptaExportNewButton->setAutoDefault(false);
-    m_ptaExportNewButton->setDefault(false);
-
-    m_ptaQuestionList = new QListWidget(left);
-    
-    // QSS for PTA Left Panel
-    left->setStyleSheet(
+    ui->ptaLeftPanel->setStyleSheet(
         "QListWidget { border: 1px solid #dcdcdc; border-radius: 4px; font-size: 13px; background-color: #f9f9f9; }"
-        // Removed item styling to avoid conflict with setBackground()
         "QTextEdit { border: 1px solid #dcdcdc; border-radius: 4px; background-color: #f5f5f5; color: #555; }"
         "QPushButton { padding: 5px; border-radius: 4px; background-color: #f0f0f0; border: 1px solid #ccc; }"
         "QPushButton:hover { background-color: #e0e0e0; }"
@@ -407,112 +302,27 @@ void QuestionAssistantWidget::setupPtaTab()
         "QPushButton#stopBtn { background-color: #dc3545; color: white; border: none; }"
         "QPushButton#stopBtn:hover { background-color: #c82333; }"
     );
-    
-    // Assign Object Names for styling
+
     m_ptaParseButton->setObjectName("actionBtn");
     m_ptaAutoAnswerButton->setObjectName("actionBtn");
     m_ptaStopAutoButton->setObjectName("stopBtn");
 
-    m_logEdit = new QTextEdit(left);
-    m_logEdit->setReadOnly(true);
-    m_logEdit->setPlaceholderText("操作日志...");
-    m_logEdit->setMaximumHeight(120);
-
-    leftLayout->addWidget(m_ptaParseButton);
-    leftLayout->addLayout(autoRow);
-    leftLayout->addWidget(m_ptaExportNewButton);
-    leftLayout->addWidget(m_ptaQuestionList, 1);
-    leftLayout->addWidget(m_logEdit);
-    left->setLayout(leftLayout);
-
-    QWidget *middle = new QWidget(splitter);
-    QVBoxLayout *midLayout = new QVBoxLayout(middle);
-    midLayout->setContentsMargins(0, 0, 0, 0);
-    midLayout->setSpacing(8);
-
-    QHBoxLayout *nav = new QHBoxLayout();
-    nav->setContentsMargins(0, 0, 0, 0);
-    nav->setSpacing(6);
-
-    m_ptaBackButton = new QToolButton(middle);
     m_ptaBackButton->setIcon(style()->standardIcon(QStyle::SP_ArrowBack));
-    m_ptaBackButton->setEnabled(false);
-
-    m_ptaForwardButton = new QToolButton(middle);
     m_ptaForwardButton->setIcon(style()->standardIcon(QStyle::SP_ArrowForward));
-    m_ptaForwardButton->setEnabled(false);
-
-    m_ptaReloadButton = new QToolButton(middle);
     m_ptaReloadButton->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
 
-    m_ptaAddressBar = new QLineEdit(middle);
-    m_ptaAddressBar->setPlaceholderText("输入网址并回车");
-
-    nav->addWidget(m_ptaBackButton);
-    nav->addWidget(m_ptaForwardButton);
-    nav->addWidget(m_ptaReloadButton);
-    nav->addWidget(m_ptaAddressBar, 1);
-
-    m_ptaWebView = new QWebEngineView(middle);
     const QUrl initialUrl("https://pintia.cn/auth/login");
     m_ptaAddressBar->setText(initialUrl.toString());
     m_ptaWebView->setUrl(initialUrl);
     m_ptaController->setWebView(m_ptaWebView);
 
-    midLayout->addLayout(nav);
-    midLayout->addWidget(m_ptaWebView, 1);
-    middle->setLayout(midLayout);
-
-    QWidget *right = new QWidget(splitter);
-    QVBoxLayout *rightLayout = new QVBoxLayout(right);
-    rightLayout->setContentsMargins(0, 0, 0, 0);
-    rightLayout->setSpacing(8);
-
-    m_ptaPageTipLabel = new QLabel("提示：请登录PTA，并打开包含题目的作业/题目列表页面，然后点击“解析当前页面题目”。", right);
-    m_ptaPageTipLabel->setWordWrap(true);
-
-    m_ptaCurrentQuestionPreview = new QuestionPreviewWidget(right);
-    m_ptaCurrentQuestionPreview->hide(); // Hidden as per user request (removed from layout)
-    m_ptaSelectedBankPreview = new QuestionPreviewWidget(right);
-
-    QHBoxLayout *ctrl = new QHBoxLayout();
-    ctrl->setContentsMargins(0, 0, 0, 0);
-    ctrl->setSpacing(8);
-
-    QLabel *kLabel = new QLabel("Top-K：", right);
-    m_ptaTopKSpinBox = new QSpinBox(right);
-    m_ptaTopKSpinBox->setRange(1, 50);
-    m_ptaTopKSpinBox->setValue(5);
-    m_ptaTopKSpinBox->setMinimumWidth(80);
-
-    m_ptaSearchButton = new QPushButton("搜题", right);
-    m_ptaSearchButton->setAutoDefault(false);
-    m_ptaSearchButton->setDefault(false);
-
-    m_ptaFillButton = new QPushButton("填入答案", right);
-    m_ptaFillButton->setAutoDefault(false);
-    m_ptaFillButton->setDefault(false);
-
-    ctrl->addWidget(kLabel);
-    ctrl->addWidget(m_ptaTopKSpinBox);
-    ctrl->addStretch();
-    ctrl->addWidget(m_ptaSearchButton);
-    ctrl->addWidget(m_ptaFillButton);
-
-    m_ptaResultsTree = new QTreeWidget(right);
-    m_ptaResultsTree->setHeaderLabels(QStringList() << "题型" << "科目" << "题库" << "来源" << "相似度");
-    m_ptaResultsTree->setAlternatingRowColors(true);
-    m_ptaResultsTree->setRootIsDecorated(false);
-    m_ptaResultsTree->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_ptaResultsTree->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_ptaResultsTree->header()->setSectionResizeMode(QHeaderView::Interactive);
-    m_ptaResultsTree->header()->resizeSection(0, 60);  // 题型
-    m_ptaResultsTree->header()->resizeSection(1, 80);  // 科目
-    m_ptaResultsTree->header()->resizeSection(2, 120); // 题库
-    m_ptaResultsTree->header()->resizeSection(3, 120); // 来源
+    m_ptaResultsTree->header()->resizeSection(0, 60);
+    m_ptaResultsTree->header()->resizeSection(1, 80);
+    m_ptaResultsTree->header()->resizeSection(2, 120);
+    m_ptaResultsTree->header()->resizeSection(3, 120);
 
-    // QSS for PTA Right Panel
-    right->setStyleSheet(
+    ui->ptaRightPanel->setStyleSheet(
         "QTreeWidget { border: 1px solid #dcdcdc; border-radius: 4px; font-size: 12px; }"
         "QTreeWidget::item { padding: 3px; }"
         "QTreeWidget::item:selected { background-color: #e6f3ff; color: #000; }"
@@ -521,24 +331,10 @@ void QuestionAssistantWidget::setupPtaTab()
         "QPushButton:hover { background-color: #0056b3; }"
     );
 
-    rightLayout->addWidget(m_ptaPageTipLabel);
-    // Removed Current Question Preview as per user request
-    // rightLayout->addWidget(new QLabel("当前题目", right));
-    // rightLayout->addWidget(m_ptaCurrentQuestionPreview, 1);
-    rightLayout->addLayout(ctrl);
-    rightLayout->addWidget(new QLabel("相似题结果（点击查看详情）", right));
-    rightLayout->addWidget(m_ptaResultsTree, 1);
-    rightLayout->addWidget(new QLabel("选择的题库题目（用于填入答案）", right));
-    rightLayout->addWidget(m_ptaSelectedBankPreview, 1);
-    right->setLayout(rightLayout);
-
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-    splitter->setStretchFactor(2, 1);
-    splitter->setSizes(QList<int>() << 320 << 900 << 600);
-
-    root->addWidget(splitter, 1);
-    m_ptaTab->setLayout(root);
+    ui->ptaSplitter->setStretchFactor(0, 0);
+    ui->ptaSplitter->setStretchFactor(1, 1);
+    ui->ptaSplitter->setStretchFactor(2, 1);
+    ui->ptaSplitter->setSizes(QList<int>() << 320 << 900 << 600);
 
     connect(m_ptaBackButton, &QToolButton::clicked, m_ptaWebView, &QWebEngineView::back);
     connect(m_ptaForwardButton, &QToolButton::clicked, m_ptaWebView, &QWebEngineView::forward);
@@ -833,142 +629,29 @@ void QuestionAssistantWidget::setupPtaTab()
 
 void QuestionAssistantWidget::setupOcsTab()
 {
-    QVBoxLayout *root = new QVBoxLayout(m_ocsTab);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(10);
+    m_ocsStatusLabel = ui->ocsStatusLabel;
+    m_ocsUrlLabel = ui->ocsUrlLabel;
+    m_ocsHostEdit = ui->ocsHostEdit;
+    m_ocsPortSpinBox = ui->ocsPortSpinBox;
+    m_ocsThresholdSpinBox = ui->ocsThresholdSpinBox;
+    m_ocsTopKSpinBox = ui->ocsTopKSpinBox;
+    m_ocsStartButton = ui->ocsStartButton;
+    m_ocsStopButton = ui->ocsStopButton;
+    m_ocsRefreshIndexButton = ui->ocsRefreshIndexButton;
+    m_ocsCopyConfigButton = ui->ocsCopyConfigButton;
+    m_ocsExportUnmatchedButton = ui->ocsExportUnmatchedButton;
+    m_ocsClearUnmatchedButton = ui->ocsClearUnmatchedButton;
+    m_ocsUnmatchedLabel = ui->ocsUnmatchedLabel;
+    m_ocsLogEdit = ui->ocsLogEdit;
+    m_ocsConfigEdit = ui->ocsConfigEdit;
 
-    QSplitter *splitter = new QSplitter(Qt::Horizontal, m_ocsTab);
+    ui->ocsConfigGrid->setColumnStretch(0, 0);
+    ui->ocsConfigGrid->setColumnStretch(1, 1);
+    ui->ocsSplitter->setStretchFactor(0, 0);
+    ui->ocsSplitter->setStretchFactor(1, 1);
+    ui->ocsSplitter->setSizes(QList<int>() << 420 << 760);
 
-    QWidget *left = new QWidget(splitter);
-    QVBoxLayout *leftLayout = new QVBoxLayout(left);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    leftLayout->setSpacing(10);
-
-    QGroupBox *statusBox = new QGroupBox("服务状态", left);
-    QVBoxLayout *statusLayout = new QVBoxLayout(statusBox);
-    statusLayout->setSpacing(8);
-
-    m_ocsStatusLabel = new QLabel("状态：未启动", statusBox);
-    m_ocsUrlLabel = new QLabel("地址：-", statusBox);
-    m_ocsUrlLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-
-    QHBoxLayout *buttonRow = new QHBoxLayout();
-    buttonRow->setContentsMargins(0, 0, 0, 0);
-    buttonRow->setSpacing(8);
-    m_ocsStartButton = new QPushButton("启动服务", statusBox);
-    m_ocsStopButton = new QPushButton("停止服务", statusBox);
-    m_ocsRefreshIndexButton = new QPushButton("刷新题库索引", statusBox);
-    m_ocsStopButton->setEnabled(false);
-    buttonRow->addWidget(m_ocsStartButton);
-    buttonRow->addWidget(m_ocsStopButton);
-    buttonRow->addWidget(m_ocsRefreshIndexButton);
-
-    statusLayout->addWidget(m_ocsStatusLabel);
-    statusLayout->addWidget(m_ocsUrlLabel);
-    statusLayout->addLayout(buttonRow);
-
-    QGroupBox *configBox = new QGroupBox("服务配置", left);
-    QGridLayout *configGrid = new QGridLayout(configBox);
-    configGrid->setContentsMargins(14, 14, 14, 14);
-    configGrid->setHorizontalSpacing(14);
-    configGrid->setVerticalSpacing(12);
-    configGrid->setColumnStretch(0, 0);
-    configGrid->setColumnStretch(1, 1);
-
-    m_ocsHostEdit = new QLineEdit(configBox);
-    m_ocsHostEdit->setText("127.0.0.1");
-    m_ocsHostEdit->setPlaceholderText("127.0.0.1");
-    m_ocsHostEdit->setMinimumWidth(220);
-
-    m_ocsPortSpinBox = new QSpinBox(configBox);
-    m_ocsPortSpinBox->setRange(1, 65535);
-    m_ocsPortSpinBox->setValue(27419);
-    m_ocsPortSpinBox->setMinimumWidth(140);
-    m_ocsPortSpinBox->setAlignment(Qt::AlignRight);
-
-    m_ocsThresholdSpinBox = new QDoubleSpinBox(configBox);
-    m_ocsThresholdSpinBox->setRange(0.0, 1.0);
-    m_ocsThresholdSpinBox->setSingleStep(0.05);
-    m_ocsThresholdSpinBox->setDecimals(2);
-    m_ocsThresholdSpinBox->setValue(0.85);
-    m_ocsThresholdSpinBox->setMinimumWidth(140);
-    m_ocsThresholdSpinBox->setAlignment(Qt::AlignRight);
-
-    m_ocsTopKSpinBox = new QSpinBox(configBox);
-    m_ocsTopKSpinBox->setRange(1, 50);
-    m_ocsTopKSpinBox->setValue(5);
-    m_ocsTopKSpinBox->setMinimumWidth(140);
-    m_ocsTopKSpinBox->setAlignment(Qt::AlignRight);
-
-    auto addConfigRow = [configBox, configGrid](int row, const QString &text, QWidget *editor) {
-        QLabel *label = new QLabel(text, configBox);
-        label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        configGrid->addWidget(label, row, 0, Qt::AlignLeft | Qt::AlignVCenter);
-        configGrid->addWidget(editor, row, 1, Qt::AlignRight | Qt::AlignVCenter);
-    };
-
-    addConfigRow(0, "监听地址：", m_ocsHostEdit);
-    addConfigRow(1, "端口：", m_ocsPortSpinBox);
-    addConfigRow(2, "相似度阈值：", m_ocsThresholdSpinBox);
-    addConfigRow(3, "返回数量：", m_ocsTopKSpinBox);
-
-    m_ocsLogEdit = new QTextEdit(left);
-    m_ocsLogEdit->setReadOnly(true);
-    m_ocsLogEdit->setPlaceholderText("服务日志...");
-
-    m_ocsUnmatchedLabel = new QLabel("未命中题目：0", left);
-    QHBoxLayout *unmatchedRow = new QHBoxLayout();
-    unmatchedRow->setContentsMargins(0, 0, 0, 0);
-    unmatchedRow->setSpacing(8);
-    m_ocsExportUnmatchedButton = new QPushButton("导出未命中题目", left);
-    m_ocsClearUnmatchedButton = new QPushButton("清空记录", left);
-    unmatchedRow->addWidget(m_ocsExportUnmatchedButton);
-    unmatchedRow->addWidget(m_ocsClearUnmatchedButton);
-    unmatchedRow->addStretch();
-
-    leftLayout->addWidget(statusBox);
-    leftLayout->addWidget(configBox);
-    leftLayout->addWidget(m_ocsUnmatchedLabel);
-    leftLayout->addLayout(unmatchedRow);
-    leftLayout->addWidget(new QLabel("日志", left));
-    leftLayout->addWidget(m_ocsLogEdit, 1);
-    left->setLayout(leftLayout);
-
-    QWidget *right = new QWidget(splitter);
-    QVBoxLayout *rightLayout = new QVBoxLayout(right);
-    rightLayout->setContentsMargins(0, 0, 0, 0);
-    rightLayout->setSpacing(8);
-
-    QLabel *configTitle = new QLabel("OCS题库配置文本", right);
-    m_ocsConfigEdit = new QPlainTextEdit(right);
-    m_ocsConfigEdit->setReadOnly(true);
-    m_ocsConfigEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
-    m_ocsConfigEdit->setPlaceholderText("启动或修改配置后自动生成，可直接复制到 OCS 网课助手的题库配置中。");
-
-    QHBoxLayout *configButtonRow = new QHBoxLayout();
-    configButtonRow->setContentsMargins(0, 0, 0, 0);
-    configButtonRow->setSpacing(8);
-    m_ocsCopyConfigButton = new QPushButton("复制配置文本", right);
-    configButtonRow->addStretch();
-    configButtonRow->addWidget(m_ocsCopyConfigButton);
-
-    QLabel *tip = new QLabel("接口：POST /api/search；健康检查：GET /health。OCS 会把当前题目标题发送到本地服务。", right);
-    tip->setWordWrap(true);
-
-    rightLayout->addWidget(configTitle);
-    rightLayout->addWidget(m_ocsConfigEdit, 1);
-    rightLayout->addLayout(configButtonRow);
-    rightLayout->addWidget(tip);
-    right->setLayout(rightLayout);
-
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-    splitter->setSizes(QList<int>() << 420 << 760);
-
-    root->addWidget(splitter, 1);
-    m_ocsTab->setLayout(root);
-
-    left->setStyleSheet(
+    ui->ocsLeftPanel->setStyleSheet(
         "QGroupBox { border: 1px solid #dcdcdc; border-radius: 4px; margin-top: 8px; padding-top: 10px; }"
         "QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; }"
         "QTextEdit, QLineEdit, QSpinBox, QDoubleSpinBox { border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; }"
@@ -976,7 +659,7 @@ void QuestionAssistantWidget::setupOcsTab()
         "QPushButton:hover { background-color: #0056b3; }"
         "QPushButton:disabled { background-color: #c8c8c8; color: #666; }"
     );
-    right->setStyleSheet(
+    ui->ocsRightPanel->setStyleSheet(
         "QPlainTextEdit { border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px; font-family: Consolas, monospace; }"
         "QPushButton { padding: 5px 10px; border-radius: 4px; background-color: #007bff; color: white; border: none; }"
         "QPushButton:hover { background-color: #0056b3; }"

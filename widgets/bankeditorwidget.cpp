@@ -1,4 +1,5 @@
 #include "bankeditorwidget.h"
+#include "ui_bankeditorwidget.h"
 #include "../core/configmanager.h"
 #include "../models/questionbank.h"
 #include <QShowEvent>
@@ -77,6 +78,7 @@ public:
 
 BankEditorWidget::BankEditorWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::BankEditorWidget)
     , m_currentQuestionIndex(-1)
     , m_isLoading(false)
     , m_hasUnsavedChanges(false)
@@ -88,6 +90,7 @@ BankEditorWidget::BankEditorWidget(QWidget *parent)
 
 BankEditorWidget::~BankEditorWidget()
 {
+    delete ui;
 }
 
 void BankEditorWidget::openBankFile(const QString &filePath, const QString &displayTitle)
@@ -320,220 +323,93 @@ bool BankEditorWidget::writeQuestionsToFile(const QString &filePath)
 
 void BankEditorWidget::setupUI()
 {
-    // Create main splitter
-    m_mainSplitter = new QSplitter(Qt::Horizontal, this);
-    
-    // Create left panel (question list)
-    m_leftPanel = new QWidget();
-    m_leftLayout = new QVBoxLayout(m_leftPanel);
-    m_leftLayout->setContentsMargins(10, 10, 10, 10);
-    m_leftLayout->setSpacing(10);
-    
-    // Bank info label
-    m_bankInfoLabel = new QLabel("题库编辑器");
-    m_bankInfoLabel->setObjectName("bankInfoLabel");
-    
-    // Question list
-    m_questionListWidget = new QListWidget();
-    m_questionListWidget->setAlternatingRowColors(false);
-    m_questionListWidget->setSpacing(6);
-    m_questionListWidget->setUniformItemSizes(true);
-    m_questionListWidget->setMouseTracking(true);
-    m_questionListWidget->setItemDelegate(new EvalListItemDelegate(m_questionListWidget));
-    m_questionListWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    
-    // List buttons
-    m_listButtonLayout = new QHBoxLayout();
-    m_addQuestionButton = new QPushButton("添加题目");
-    m_deleteQuestionButton = new QPushButton("删除题目");
-    
-    m_listButtonLayout->addWidget(m_addQuestionButton);
-    m_listButtonLayout->addWidget(m_deleteQuestionButton);
-    
-    m_leftLayout->addWidget(m_bankInfoLabel);
-    m_leftLayout->addWidget(m_questionListWidget);
-    m_leftLayout->addLayout(m_listButtonLayout);
-    
-    // Create right panel (editor and preview)
-    m_rightPanel = new QWidget();
-    m_rightLayout = new QVBoxLayout(m_rightPanel);
-    m_rightLayout->setContentsMargins(10, 10, 10, 10);
-    m_rightLayout->setSpacing(10);
-    
-    // Create editor splitter
-    m_editorSplitter = new QSplitter(Qt::Horizontal);
-    
-    // Create editor panel
-    m_editorPanel = new QWidget();
-    m_editorLayout = new QVBoxLayout(m_editorPanel);
-    m_editorLayout->setContentsMargins(5, 5, 5, 5);
-    m_editorLayout->setSpacing(10);
-    
-    // Editor group
-    m_editorGroup = new QGroupBox("题目编辑");
-    m_editorGroupLayout = new QVBoxLayout(m_editorGroup);
-    
-    // Question type selection
-    m_typeLayout = new QHBoxLayout();
-    m_typeLabel = new QLabel("题目类型:");
-    m_typeComboBox = new QComboBox();
+    ui->setupUi(this);
+
+    m_mainSplitter = ui->mainSplitter;
+    m_leftPanel = ui->leftPanel;
+    m_leftLayout = ui->leftLayout;
+    m_bankInfoLabel = ui->bankInfoLabel;
+    m_questionListWidget = ui->questionListWidget;
+    m_listButtonLayout = ui->listButtonLayout;
+    m_addQuestionButton = ui->addQuestionButton;
+    m_deleteQuestionButton = ui->deleteQuestionButton;
+    m_rightPanel = ui->rightPanel;
+    m_rightLayout = ui->rightLayout;
+    m_editorSplitter = ui->editorSplitter;
+    m_editorPanel = ui->editorPanel;
+    m_editorLayout = ui->editorLayout;
+    m_editorGroup = ui->editorGroup;
+    m_editorGroupLayout = ui->editorGroupLayout;
+    m_typeLayout = ui->typeLayout;
+    m_typeLabel = ui->typeLabel;
+    m_typeComboBox = ui->typeComboBox;
+    m_questionLabel = ui->questionLabel;
+    m_questionTextEdit = ui->questionTextEdit;
+    m_imageGroup = ui->imageGroup;
+    m_imageLayout = ui->imageLayout;
+    m_imageTable = ui->imageTable;
+    m_imageButtonLayout = ui->imageButtonLayout;
+    m_addImageButton = ui->addImageButton;
+    m_removeImageButton = ui->removeImageButton;
+    m_chooseImageButton = ui->chooseImageButton;
+    m_editorStack = ui->editorStack;
+    m_previewPanel = ui->previewPanel;
+    m_previewLayout = ui->previewLayout;
+    m_previewGroup = ui->previewGroup;
+    m_previewGroupLayout = ui->previewGroupLayout;
+    m_previewScrollArea = ui->previewScrollArea;
+    m_previewContent = ui->previewContent;
+    m_previewContentLayout = ui->previewContentLayout;
+    m_previewRenderer = ui->previewRenderer;
+    m_previewStack = ui->previewStack;
+    m_bottomButtonLayout = ui->bottomButtonLayout;
+    m_saveButton = ui->saveButton;
+    m_backButton = ui->backButton;
+
     m_typeComboBox->addItem("选择题", "Choice");
     m_typeComboBox->addItem("判断题", "TrueOrFalse");
     m_typeComboBox->addItem("多选题", "MultipleChoice");
     m_typeComboBox->addItem("填空题", "FillBlank");
-    
-    m_typeLayout->addWidget(m_typeLabel);
-    m_typeLayout->addWidget(m_typeComboBox);
-    m_typeLayout->addStretch();
-    
-    // Question content editor
-    m_questionLabel = new QLabel("题目内容:");
-    m_questionTextEdit = new QTextEdit();
-    m_questionTextEdit->setMinimumHeight(150);
-    m_questionTextEdit->setPlaceholderText("请输入题目内容，支持Markdown语法和LaTeX数学公式...");
 
-    m_imageGroup = new QGroupBox("图片");
-    m_imageLayout = new QVBoxLayout(m_imageGroup);
-
-    m_imageTable = new QTableWidget();
-    m_imageTable->setColumnCount(2);
-    m_imageTable->setHorizontalHeaderLabels(QStringList() << "键" << "路径");
+    m_questionListWidget->setItemDelegate(new EvalListItemDelegate(m_questionListWidget));
     m_imageTable->horizontalHeader()->setStretchLastSection(true);
     m_imageTable->verticalHeader()->setVisible(false);
-    m_imageTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_imageTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_imageTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_imageTable->setMinimumHeight(130);
 
-    m_imageButtonLayout = new QHBoxLayout();
-    m_addImageButton = new QPushButton("添加");
-    m_removeImageButton = new QPushButton("删除");
-    m_chooseImageButton = new QPushButton("选择图片");
-    m_imageButtonLayout->addWidget(m_addImageButton);
-    m_imageButtonLayout->addWidget(m_removeImageButton);
-    m_imageButtonLayout->addStretch();
-    m_imageButtonLayout->addWidget(m_chooseImageButton);
-
-    m_imageLayout->addWidget(m_imageTable);
-    m_imageLayout->addLayout(m_imageButtonLayout);
-    
-    // Dynamic editor stack
-    m_editorStack = new QStackedWidget();
-    
-    // Setup different question type editors
     setupChoiceEditor();
     setupTrueOrFalseEditor();
     setupMultiChoiceEditor();
     setupFillBlankEditor();
-    
-    m_editorGroupLayout->addLayout(m_typeLayout);
-    m_editorGroupLayout->addWidget(m_questionLabel);
-    m_editorGroupLayout->addWidget(m_questionTextEdit);
-    m_editorGroupLayout->addWidget(m_imageGroup);
-    m_editorGroupLayout->addWidget(m_editorStack);
-    
-    m_editorLayout->addWidget(m_editorGroup);
-    
-    // Create preview panel
-    m_previewPanel = new QWidget();
-    m_previewLayout = new QVBoxLayout(m_previewPanel);
-    m_previewLayout->setContentsMargins(5, 5, 5, 5);
-    m_previewLayout->setSpacing(10);
-    
-    // Preview group
-    m_previewGroup = new QGroupBox("实时预览");
-    m_previewGroupLayout = new QVBoxLayout(m_previewGroup);
-    
-    // Preview scroll area
-    m_previewScrollArea = new QScrollArea();
-    m_previewScrollArea->setWidgetResizable(true);
-    m_previewScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_previewScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    
-    m_previewContent = new QWidget();
-    m_previewContentLayout = new QVBoxLayout(m_previewContent);
-    m_previewContentLayout->setContentsMargins(10, 10, 10, 10);
-    m_previewContentLayout->setSpacing(15);
-    
-    // Question text renderer
-    m_previewRenderer = new MarkdownRenderer(this);
+
     m_previewRenderer->setAutoResize(true, 400);
-    
-    // Preview stack for different question types
-    m_previewStack = new QStackedWidget();
-    
+
     setupChoicePreview();
     setupTrueOrFalsePreview();
     setupMultiChoicePreview();
     setupFillBlankPreview();
-    
-    m_previewContentLayout->addWidget(m_previewRenderer);
-    m_previewContentLayout->addWidget(m_previewStack);
-    m_previewContentLayout->addStretch();
-    
-    m_previewScrollArea->setWidget(m_previewContent);
-    m_previewGroupLayout->addWidget(m_previewScrollArea);
-    
-    m_previewLayout->addWidget(m_previewGroup);
-    
-    // Add panels to editor splitter
-    m_editorSplitter->addWidget(m_editorPanel);
-    m_editorSplitter->addWidget(m_previewPanel);
+
     m_editorSplitter->setStretchFactor(0, 1);
     m_editorSplitter->setStretchFactor(1, 1);
-    
-    // Bottom buttons
-    m_bottomButtonLayout = new QHBoxLayout();
-    m_saveButton = new QPushButton("保存题库");
+
     m_saveButton->setObjectName("saveButton");
-    m_backButton = new QPushButton("返回");
     m_backButton->setObjectName("backButton");
-    
-    m_bottomButtonLayout->addStretch();
-    m_bottomButtonLayout->addWidget(m_saveButton);
-    m_bottomButtonLayout->addWidget(m_backButton);
-    
-    // Add to right layout
-    m_rightLayout->addWidget(m_editorSplitter);
-    m_rightLayout->addLayout(m_bottomButtonLayout);
-    
-    // Add panels to main splitter
-    m_mainSplitter->addWidget(m_leftPanel);
-    m_mainSplitter->addWidget(m_rightPanel);
+
     m_mainSplitter->setStretchFactor(0, 1);
     m_mainSplitter->setStretchFactor(1, 3);
-    
-    // Main layout
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(m_mainSplitter);
-    
-    setLayout(mainLayout);
 }
 
 void BankEditorWidget::setupChoiceEditor()
 {
-    m_choiceEditorWidget = new QWidget();
-    m_choiceEditorLayout = new QVBoxLayout(m_choiceEditorWidget);
-    
-    // Choice count
-    m_choiceCountLayout = new QHBoxLayout();
-    m_choiceCountLabel = new QLabel("选项数量:");
-    m_choiceCountSpinBox = new QSpinBox();
-    m_choiceCountSpinBox->setMinimum(2);
-    m_choiceCountSpinBox->setMaximum(8);
-    m_choiceCountSpinBox->setValue(4);
-    m_choiceCountSpinBox->setMinimumWidth(80);  // 设置最小宽度
-    
-    m_choiceCountLayout->addWidget(m_choiceCountLabel);
-    m_choiceCountLayout->addWidget(m_choiceCountSpinBox);
-    m_choiceCountLayout->addStretch();
-    
-    m_choiceEditorLayout->addLayout(m_choiceCountLayout);
-    
-    // Choice options (will be created dynamically)
+    m_choiceEditorWidget = ui->choiceEditorWidget;
+    m_choiceEditorLayout = ui->choiceEditorLayout;
+    m_choiceCountLayout = ui->choiceCountLayout;
+    m_choiceCountLabel = ui->choiceCountLabel;
+    m_choiceCountSpinBox = ui->choiceCountSpinBox;
+    m_choiceAnswerLabel = ui->choiceAnswerLabel;
+    m_choiceAnswerComboBox = ui->choiceAnswerComboBox;
+
+    int insertIndex = 1;
     for (int i = 0; i < 8; ++i) {
-        QTextEdit *edit = new QTextEdit();
+        QTextEdit *edit = new QTextEdit(m_choiceEditorWidget);
         edit->setPlaceholderText(QString("选项 %1").arg(QChar('A' + i)));
         edit->setAcceptRichText(false);
         edit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
@@ -543,65 +419,39 @@ void BankEditorWidget::setupChoiceEditor()
         edit->setMinimumHeight(36);
         edit->setVisible(i < 4);
         m_choiceEdits.append(edit);
-        m_choiceEditorLayout->addWidget(edit);
+        m_choiceEditorLayout->insertWidget(insertIndex++, edit);
     }
-    
-    // Answer selection
-    m_choiceAnswerLabel = new QLabel("正确答案:");
-    m_choiceAnswerComboBox = new QComboBox();
+
     m_choiceAnswerComboBox->addItem("A");
     m_choiceAnswerComboBox->addItem("B");
     m_choiceAnswerComboBox->addItem("C");
     m_choiceAnswerComboBox->addItem("D");
-    
-    m_choiceEditorLayout->addWidget(m_choiceAnswerLabel);
-    m_choiceEditorLayout->addWidget(m_choiceAnswerComboBox);
-    m_choiceEditorLayout->addStretch();
-    
-    m_editorStack->addWidget(m_choiceEditorWidget);
 }
 
 void BankEditorWidget::setupTrueOrFalseEditor()
 {
-    m_trueOrFalseEditorWidget = new QWidget();
-    m_trueOrFalseEditorLayout = new QVBoxLayout(m_trueOrFalseEditorWidget);
-    
-    // Answer selection
-    m_trueOrFalseAnswerLabel = new QLabel("正确答案:");
-    m_trueOrFalseAnswerComboBox = new QComboBox();
+    m_trueOrFalseEditorWidget = ui->trueOrFalseEditorWidget;
+    m_trueOrFalseEditorLayout = ui->trueOrFalseEditorLayout;
+    m_trueOrFalseAnswerLabel = ui->trueOrFalseAnswerLabel;
+    m_trueOrFalseAnswerComboBox = ui->trueOrFalseAnswerComboBox;
+
     m_trueOrFalseAnswerComboBox->addItem("正确 (T)", "T");
     m_trueOrFalseAnswerComboBox->addItem("错误 (F)", "F");
-    
-    m_trueOrFalseEditorLayout->addWidget(m_trueOrFalseAnswerLabel);
-    m_trueOrFalseEditorLayout->addWidget(m_trueOrFalseAnswerComboBox);
-    m_trueOrFalseEditorLayout->addStretch();
-    
-    m_editorStack->addWidget(m_trueOrFalseEditorWidget);
 }
 
 void BankEditorWidget::setupMultiChoiceEditor()
 {
-    m_multiChoiceEditorWidget = new QWidget();
-    m_multiChoiceEditorLayout = new QVBoxLayout(m_multiChoiceEditorWidget);
-    
-    // Choice count
-    m_multiChoiceCountLayout = new QHBoxLayout();
-    m_multiChoiceCountLabel = new QLabel("选项数量:");
-    m_multiChoiceCountSpinBox = new QSpinBox();
-    m_multiChoiceCountSpinBox->setMinimum(2);
-    m_multiChoiceCountSpinBox->setMaximum(8);
-    m_multiChoiceCountSpinBox->setValue(4);
-    m_multiChoiceCountSpinBox->setMinimumWidth(80);  // 设置最小宽度
-    
-    m_multiChoiceCountLayout->addWidget(m_multiChoiceCountLabel);
-    m_multiChoiceCountLayout->addWidget(m_multiChoiceCountSpinBox);
-    m_multiChoiceCountLayout->addStretch();
-    
-    m_multiChoiceEditorLayout->addLayout(m_multiChoiceCountLayout);
-    
-    // Choice options (will be created dynamically)
+    m_multiChoiceEditorWidget = ui->multiChoiceEditorWidget;
+    m_multiChoiceEditorLayout = ui->multiChoiceEditorLayout;
+    m_multiChoiceCountLayout = ui->multiChoiceCountLayout;
+    m_multiChoiceCountLabel = ui->multiChoiceCountLabel;
+    m_multiChoiceCountSpinBox = ui->multiChoiceCountSpinBox;
+    m_multiChoiceAnswerLabel = ui->multiChoiceAnswerLabel;
+    m_multiChoiceAnswerEdit = ui->multiChoiceAnswerEdit;
+
+    int insertIndex = 1;
     for (int i = 0; i < 8; ++i) {
-        QTextEdit *edit = new QTextEdit();
+        QTextEdit *edit = new QTextEdit(m_multiChoiceEditorWidget);
         edit->setPlaceholderText(QString("选项 %1").arg(QChar('A' + i)));
         edit->setAcceptRichText(false);
         edit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
@@ -611,120 +461,76 @@ void BankEditorWidget::setupMultiChoiceEditor()
         edit->setMinimumHeight(36);
         edit->setVisible(i < 4);
         m_multiChoiceEdits.append(edit);
-        m_multiChoiceEditorLayout->addWidget(edit);
+        m_multiChoiceEditorLayout->insertWidget(insertIndex++, edit);
     }
-    
-    // Answer input
-    m_multiChoiceAnswerLabel = new QLabel("正确答案 (如: A,B,C):");
-    m_multiChoiceAnswerEdit = new QTextEdit();
-    m_multiChoiceAnswerEdit->setMaximumHeight(60);
-    m_multiChoiceAnswerEdit->setPlaceholderText("输入正确答案的字母组合，如: A,B,C");
-    
-    m_multiChoiceEditorLayout->addWidget(m_multiChoiceAnswerLabel);
-    m_multiChoiceEditorLayout->addWidget(m_multiChoiceAnswerEdit);
-    m_multiChoiceEditorLayout->addStretch();
-    
-    m_editorStack->addWidget(m_multiChoiceEditorWidget);
 }
 
 void BankEditorWidget::setupFillBlankEditor()
 {
-    m_fillBlankEditorWidget = new QWidget();
-    m_fillBlankEditorLayout = new QVBoxLayout(m_fillBlankEditorWidget);
-    
-    // Blank count
-    m_blankCountLayout = new QHBoxLayout();
-    m_blankCountLabel = new QLabel("空格数量:");
-    m_blankCountSpinBox = new QSpinBox();
-    m_blankCountSpinBox->setMinimum(1);
-    m_blankCountSpinBox->setMaximum(10);
-    m_blankCountSpinBox->setValue(1);
-    m_blankCountSpinBox->setMinimumWidth(80);  // 设置最小宽度
-    
-    m_blankCountLayout->addWidget(m_blankCountLabel);
-    m_blankCountLayout->addWidget(m_blankCountSpinBox);
-    m_blankCountLayout->addStretch();
-    
-    m_fillBlankEditorLayout->addLayout(m_blankCountLayout);
-    
-    // Blank answers (will be created dynamically)
+    m_fillBlankEditorWidget = ui->fillBlankEditorWidget;
+    m_fillBlankEditorLayout = ui->fillBlankEditorLayout;
+    m_blankCountLayout = ui->blankCountLayout;
+    m_blankCountLabel = ui->blankCountLabel;
+    m_blankCountSpinBox = ui->blankCountSpinBox;
+
+    int insertIndex = 1;
     for (int i = 0; i < 10; ++i) {
-        QLineEdit *edit = new QLineEdit();
+        QLineEdit *edit = new QLineEdit(m_fillBlankEditorWidget);
         edit->setPlaceholderText(QString("第 %1 个空的答案").arg(i + 1));
         edit->setVisible(i < 1);
         m_blankAnswerEdits.append(edit);
-        m_fillBlankEditorLayout->addWidget(edit);
+        m_fillBlankEditorLayout->insertWidget(insertIndex++, edit);
     }
-    
-    m_fillBlankEditorLayout->addStretch();
-    
-    m_editorStack->addWidget(m_fillBlankEditorWidget);
 }
 
 void BankEditorWidget::setupChoicePreview()
 {
-    m_choicePreviewWidget = new QWidget();
-    m_choicePreviewLayout = new QVBoxLayout(m_choicePreviewWidget);
-    
+    m_choicePreviewWidget = ui->choicePreviewWidget;
+    m_choicePreviewLayout = ui->choicePreviewLayout;
+
+    int insertIndex = 0;
     for (int i = 0; i < 8; ++i) {
-        MarkdownRenderer *renderer = new MarkdownRenderer(this);
+        MarkdownRenderer *renderer = new MarkdownRenderer(m_choicePreviewWidget);
         renderer->setObjectName("choicePreviewRenderer");
         renderer->setVisible(false);
         renderer->setAutoResize(true, 200);  // 启用自动适配，最大高度200
         renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         m_choicePreviewRenderers.append(renderer);
-        m_choicePreviewLayout->addWidget(renderer);
+        m_choicePreviewLayout->insertWidget(insertIndex++, renderer);
     }
-    
-    m_choicePreviewLayout->addStretch();
-    m_previewStack->addWidget(m_choicePreviewWidget);
 }
 
 void BankEditorWidget::setupTrueOrFalsePreview()
 {
-    m_trueOrFalsePreviewWidget = new QWidget();
-    m_trueOrFalsePreviewLayout = new QVBoxLayout(m_trueOrFalsePreviewWidget);
-    
-    m_trueOrFalsePreviewLabel = new QLabel("○ 正确\n○ 错误");
+    m_trueOrFalsePreviewWidget = ui->trueOrFalsePreviewWidget;
+    m_trueOrFalsePreviewLayout = ui->trueOrFalsePreviewLayout;
+    m_trueOrFalsePreviewLabel = ui->trueOrFalsePreviewLabel;
     m_trueOrFalsePreviewLabel->setObjectName("trueOrFalsePreviewLabel");
-    
-    m_trueOrFalsePreviewLayout->addWidget(m_trueOrFalsePreviewLabel);
-    m_trueOrFalsePreviewLayout->addStretch();
-    
-    m_previewStack->addWidget(m_trueOrFalsePreviewWidget);
 }
 
 void BankEditorWidget::setupMultiChoicePreview()
 {
-    m_multiChoicePreviewWidget = new QWidget();
-    m_multiChoicePreviewLayout = new QVBoxLayout(m_multiChoicePreviewWidget);
-    
+    m_multiChoicePreviewWidget = ui->multiChoicePreviewWidget;
+    m_multiChoicePreviewLayout = ui->multiChoicePreviewLayout;
+
+    int insertIndex = 0;
     for (int i = 0; i < 8; ++i) {
-        MarkdownRenderer *renderer = new MarkdownRenderer(this);
+        MarkdownRenderer *renderer = new MarkdownRenderer(m_multiChoicePreviewWidget);
         renderer->setObjectName("multiChoicePreviewRenderer");
         renderer->setVisible(false);
         renderer->setAutoResize(true, 200);  // 启用自动适配，最大高度200
         renderer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         m_multiChoicePreviewRenderers.append(renderer);
-        m_multiChoicePreviewLayout->addWidget(renderer);
+        m_multiChoicePreviewLayout->insertWidget(insertIndex++, renderer);
     }
-    
-    m_multiChoicePreviewLayout->addStretch();
-    m_previewStack->addWidget(m_multiChoicePreviewWidget);
 }
 
 void BankEditorWidget::setupFillBlankPreview()
 {
-    m_fillBlankPreviewWidget = new QWidget();
-    m_fillBlankPreviewLayout = new QVBoxLayout(m_fillBlankPreviewWidget);
-    
-    m_fillBlankPreviewLabel = new QLabel("填空题预览区域");
+    m_fillBlankPreviewWidget = ui->fillBlankPreviewWidget;
+    m_fillBlankPreviewLayout = ui->fillBlankPreviewLayout;
+    m_fillBlankPreviewLabel = ui->fillBlankPreviewLabel;
     m_fillBlankPreviewLabel->setObjectName("fillBlankPreviewLabel");
-    
-    m_fillBlankPreviewLayout->addWidget(m_fillBlankPreviewLabel);
-    m_fillBlankPreviewLayout->addStretch();
-    
-    m_previewStack->addWidget(m_fillBlankPreviewWidget);
 }
 
 void BankEditorWidget::setupConnections()
